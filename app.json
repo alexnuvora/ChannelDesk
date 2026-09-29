@@ -2,16 +2,16 @@
   "expo": {
     "name": "WhatBuy",
     "slug": "whatbuy",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
       "package": "co.whatbuy.app",
-      "versionCode": 2
+      "versionCode": 3
     },
     "ios": {
       "bundleIdentifier": "co.whatbuy.app",
-      "buildNumber": "1"
+      "buildNumber": "2"
     },
     "plugins": [
       [
