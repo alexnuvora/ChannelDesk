@@ -23,6 +23,11 @@ jobs:
         run: npx expo-doctor
       - name: Generate Android project
         run: npx expo prebuild --platform android --non-interactive --clean
+      - name: Print Android signing fingerprints
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew signingReport --no-daemon
       - name: Build standalone release APK
         working-directory: android
         run: |
