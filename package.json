@@ -1,26 +1,6 @@
 {
-  "name": "whatbuy",
-  "version": "0.1.0",
-  "private": true,
-  "main": "node_modules/expo/AppEntry.js",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
-  },
-  "dependencies": {
-    "@expo/vector-icons": "^14.0.4",
-    "expo": "~52.0.0",
-    "expo-image-picker": "~16.0.6",
-    "expo-status-bar": "~2.0.1",
-    "react": "18.3.1",
-    "react-native": "0.76.9"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.25.2"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+  "name":"whatbuy","version":"0.1.1","private":true,"main":"node_modules/expo/AppEntry.js",
+  "scripts":{"start":"expo start","android":"expo start --android","ios":"expo start --ios","web":"expo start --web","doctor":"npx expo-doctor"},
+  "dependencies":{"@expo/vector-icons":"^14.0.4","expo":"~52.0.0","expo-image-picker":"~16.0.6","expo-status-bar":"~2.0.1","react":"18.3.1","react-native":"0.76.9"},
+  "devDependencies":{"@babel/core":"^7.25.2","babel-preset-expo":"~12.0.0"},"engines":{"node":">=20"}
 }
