@@ -1,6 +1,6 @@
 {
   "name": "whatbuy",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -18,7 +18,8 @@
     "react": "18.3.1",
     "react-native": "0.76.9",
     "expo-font": "~13.0.4",
-    "expo-asset": "~11.0.5"
+    "expo-asset": "~11.0.5",
+    "firebase": "^12.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
