@@ -32,7 +32,7 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid in request.resource.data.participantIds;
       allow update: if isParticipant(resource.data)
         && request.resource.data.participantIds == resource.data.participantIds
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageSenderId','updatedAt','unreadCount','lastReadAt','typing']);
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if signedIn()
@@ -42,8 +42,13 @@ service cloud.firestore {
           && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 4000;
-        allow update, delete: if false;
+          && request.resource.data.text.size() <= 4000
+          && request.resource.data.type in ['text','image','video','audio','document','location','system'];
+        allow update: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds
+          && request.resource.data.senderId == resource.data.senderId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','editedAt','deletedForEveryone','deletedAt','reactions']);
+        allow delete: if false;
       }
     }
 
