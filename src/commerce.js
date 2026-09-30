@@ -74,5 +74,17 @@ export async function reportProblem({orderId,userId,reason,details}){
   return reportRef.id;
 }
 
+export async function submitReview({order,userId,rating,comment}){
+  if(!order?.id||!userId) throw new Error('Order not found.');
+  if(order.status!==ORDER_STATUS.COMPLETED) throw new Error('Reviews are available after the order is completed.');
+  if(!order.participantIds?.includes(userId)) throw new Error('Not authorised.');
+  const n=Number(rating); if(!Number.isInteger(n)||n<1||n>5) throw new Error('Choose a rating from 1 to 5.');
+  const revieweeId=userId===order.buyerId?order.sellerId:order.buyerId;
+  const ref=doc(db,'reviews',order.id+'_'+userId);
+  const existing=await getDoc(ref); if(existing.exists()) throw new Error('You have already reviewed this order.');
+  await setDoc(ref,{orderId:order.id,listingId:order.listingId,reviewerId:userId,revieweeId,rating:n,comment:(comment||'').trim().slice(0,1000),createdAt:serverTimestamp()});
+  return ref.id;
+}
+
 // Payment, payout, shipping-label and carrier-tracking state must be written by trusted server webhooks.
 // The mobile client intentionally has no function that can mark an order paid, delivered, completed or paid out.
