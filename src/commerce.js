@@ -20,7 +20,7 @@ export async function createOffer({listing,buyer,amountPounds,parentOfferId=null
   const amount=money(amountPounds);
   const ref=doc(collection(db,'offers'));
   await setDoc(ref,{listingId:listing.id,listingTitle:listing.title,listingImage:listing.img||listing.imageUrl||null,
-    buyerId:buyer.uid,sellerId:listing.sellerId,participantIds:[buyer.uid,listing.sellerId],amount,status:OFFER_STATUS.PENDING,
+    buyerId:buyer.uid,sellerId:listing.sellerId,participantIds:[buyer.uid,listing.sellerId],amount,status:OFFER_STATUS.PENDING,awaitingUserId:listing.sellerId,counteredBy:null,counterCount:0,
     parentOfferId,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
   return ref.id;
 }
@@ -31,18 +31,21 @@ export async function respondToOffer({offerId,userId,action,counterAmountPounds}
     const snap=await tx.get(ref); if(!snap.exists()) throw new Error('Offer no longer exists.');
     const offer=snap.data(); if(!offer.participantIds?.includes(userId)) throw new Error('Not authorised.');
     if(offer.status!==OFFER_STATUS.PENDING) throw new Error('This offer has already been handled.');
+    const awaiting=offer.awaitingUserId||offer.sellerId;
     if(action==='accept'){
-      if(userId!==offer.sellerId) throw new Error('Only the seller can accept.');
-      tx.update(ref,{status:OFFER_STATUS.ACCEPTED,acceptedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      if(userId!==awaiting) throw new Error('The other person needs to respond to this offer.');
+      tx.update(ref,{status:OFFER_STATUS.ACCEPTED,acceptedAt:serverTimestamp(),acceptedBy:userId,updatedAt:serverTimestamp()});
     }else if(action==='decline'){
-      if(userId!==offer.sellerId) throw new Error('Only the seller can decline.');
-      tx.update(ref,{status:OFFER_STATUS.DECLINED,updatedAt:serverTimestamp()});
+      if(userId!==awaiting) throw new Error('The other person needs to respond to this offer.');
+      tx.update(ref,{status:OFFER_STATUS.DECLINED,declinedBy:userId,updatedAt:serverTimestamp()});
     }else if(action==='withdraw'){
       if(userId!==offer.buyerId) throw new Error('Only the buyer can withdraw.');
       tx.update(ref,{status:OFFER_STATUS.WITHDRAWN,updatedAt:serverTimestamp()});
     }else if(action==='counter'){
+      if(userId!==awaiting) throw new Error('Wait for the other person to respond first.');
       const amount=money(counterAmountPounds);
-      tx.update(ref,{status:OFFER_STATUS.COUNTERED,counterAmount:amount,counteredBy:userId,updatedAt:serverTimestamp()});
+      const next=userId===offer.buyerId?offer.sellerId:offer.buyerId;
+      tx.update(ref,{amount,status:OFFER_STATUS.PENDING,awaitingUserId:next,counteredBy:userId,counterCount:(offer.counterCount||0)+1,updatedAt:serverTimestamp()});
     }else throw new Error('Unsupported offer action.');
   });
 }
