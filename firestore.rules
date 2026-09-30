@@ -22,6 +22,9 @@ service cloud.firestore {
       match /favourites/{listingId} {
         allow read, write: if signedIn() && request.auth.uid == userId;
       }
+      match /addresses/{addressId} {
+        allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     match /chats/{chatId} {
@@ -83,6 +86,16 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','problemReportId','updatedAt'])
         && request.resource.data.status == 'problem_reported';
       allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.revieweeId != request.auth.uid
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow update, delete: if false;
     }
 
     match /reports/{reportId} {
