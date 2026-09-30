@@ -54,7 +54,8 @@ export async function createOrder({listing,buyer,offer=null}){
   if(!buyer?.uid||!listing?.sellerId) throw new Error('Sign in to buy.');
   if(buyer.uid===listing.sellerId) throw new Error('You cannot buy your own listing.');
   const amount=offer?.amount ?? money(listing.price);
-  const ref=doc(collection(db,'orders'));
+  const ref=offer?.id?doc(db,'orders',`offer_${offer.id}`):doc(collection(db,'orders'));
+  const existing=await getDoc(ref);if(existing.exists())return ref.id;
   await setDoc(ref,{listingId:listing.id,listingTitle:listing.title,listingImage:listing.img||listing.imageUrl||null,
     buyerId:buyer.uid,sellerId:listing.sellerId,participantIds:[buyer.uid,listing.sellerId],amount,currency:'gbp',
     offerId:offer?.id||null,status:ORDER_STATUS.AWAITING_PAYMENT,paymentStatus:'not_started',shippingStatus:'not_started',
