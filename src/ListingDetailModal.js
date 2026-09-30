@@ -1,5 +1,5 @@
 import React from 'react';
-import {View,Text,StyleSheet,TouchableOpacity,Image,Modal,SafeAreaView,ScrollView,Dimensions} from 'react-native';
+import {View,Text,StyleSheet,TouchableOpacity,Image,Modal,SafeAreaView,ScrollView,Dimensions,Platform} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 
 const W=Dimensions.get('window').width;
@@ -8,8 +8,9 @@ export default function ListingDetailModal({listing,user,onClose,onMessage,onOff
  if(!listing)return null;
  const own=listing.sellerId===user?.uid;
  const photos=(listing.photos?.length?listing.photos:[listing.img||listing.imageUrl]).filter(Boolean);
- return <Modal visible animationType="slide" onRequestClose={onClose}>
+ return <Modal visible animationType="slide" onRequestClose={onClose} statusBarTranslucent={false} navigationBarTranslucent={false}>
   <SafeAreaView style={s.safe}>
+   <View style={s.shell}>
    <View style={s.header}>
     <TouchableOpacity accessibilityLabel="Close listing" style={s.close} onPress={onClose}><Ionicons name="close" size={25}/></TouchableOpacity>
     <Text style={s.headerTitle}>Listing</Text><View style={{width:40}}/>
@@ -27,23 +28,25 @@ export default function ListingDetailModal({listing,user,onClose,onMessage,onOff
      {own&&<View style={s.own}><Ionicons name="information-circle-outline" size={20} color="#087A4D"/><Text style={s.ownText}>This is your listing. Manage it from Profile → My listings.</Text></View>}
     </View>
    </ScrollView>
-   {!own&&<View style={s.footer}>
+   {!own&&<View style={[s.footer,Platform.OS==='android'&&s.footerAndroid]}>
     <TouchableOpacity style={s.message} onPress={onMessage}><Ionicons name="chatbubble-outline" size={19} color="#087A4D"/><Text style={s.messageText}>Message</Text></TouchableOpacity>
     <TouchableOpacity style={s.offer} onPress={onOffer}><Text style={s.offerText}>Make offer</Text></TouchableOpacity>
     <TouchableOpacity style={s.buy} onPress={onBuy}><Text style={s.buyText}>Buy now</Text></TouchableOpacity>
    </View>}
+   </View>
   </SafeAreaView>
  </Modal>
 }
 const s=StyleSheet.create({
- safe:{flex:1,backgroundColor:'#fff'},header:{height:60,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderColor:'#EAECF0',backgroundColor:'#fff'},
+ safe:{flex:1,backgroundColor:'#fff'},shell:{flex:1,minHeight:0,paddingBottom:Platform.OS==='android'?24:0},header:{height:60,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderColor:'#EAECF0',backgroundColor:'#fff'},
  close:{width:40,height:40,borderRadius:20,backgroundColor:'#F2F4F7',alignItems:'center',justifyContent:'center'},headerTitle:{fontSize:18,fontWeight:'900'},
- scroll:{flex:1,minHeight:0},content:{paddingBottom:36,flexGrow:1},gallery:{height:Math.min(W,430),flexGrow:0},slide:{width:W,height:Math.min(W,430),position:'relative'},image:{width:'100%',height:'100%',resizeMode:'cover',backgroundColor:'#F2F4F7'},
+ scroll:{flex:1,minHeight:0},content:{paddingBottom:36,flexGrow:1},gallery:{height:Math.min(W*.88,390),flexGrow:0},slide:{width:W,height:Math.min(W*.88,390),position:'relative'},image:{width:'100%',height:'100%',resizeMode:'cover',backgroundColor:'#F2F4F7'},
  count:{position:'absolute',right:14,bottom:14,backgroundColor:'rgba(17,24,39,.72)',paddingHorizontal:10,paddingVertical:5,borderRadius:14},countText:{color:'#fff',fontWeight:'800',fontSize:12},
  body:{padding:20},price:{fontSize:28,fontWeight:'900'},title:{fontSize:22,fontWeight:'900',marginTop:5},meta:{color:'#667085',fontWeight:'600',marginTop:7},description:{fontSize:15,lineHeight:23,color:'#344054',marginVertical:18},
  seller:{flexDirection:'row',alignItems:'center',gap:10,paddingVertical:14,borderTopWidth:1,borderBottomWidth:1,borderColor:'#EAECF0'},sellerName:{fontWeight:'900',fontSize:15},location:{fontSize:12,color:'#98A2B3',marginTop:2},
  own:{flexDirection:'row',gap:8,backgroundColor:'#EAF9F2',padding:13,borderRadius:14,marginTop:16},ownText:{flex:1,color:'#087A4D',lineHeight:19,fontWeight:'600'},
- footer:{flexShrink:0,minHeight:78,paddingHorizontal:12,paddingTop:10,paddingBottom:16,backgroundColor:'#fff',borderTopWidth:1,borderTopColor:'#EAECF0',flexDirection:'row',gap:8},
+ footer:{flexShrink:0,minHeight:82,paddingHorizontal:12,paddingTop:10,paddingBottom:16,backgroundColor:'#fff',borderTopWidth:1,borderTopColor:'#EAECF0',flexDirection:'row',gap:8},
+ footerAndroid:{paddingBottom:12,marginBottom:4},
  message:{width:88,height:52,borderRadius:14,borderWidth:1,borderColor:'#0A8F5A',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:5},messageText:{color:'#087A4D',fontWeight:'900',fontSize:12},
  offer:{flex:1,height:52,borderRadius:14,borderWidth:1,borderColor:'#0A8F5A',alignItems:'center',justifyContent:'center'},offerText:{color:'#087A4D',fontWeight:'900'},
  buy:{flex:1,height:52,borderRadius:14,backgroundColor:'#0A8F5A',alignItems:'center',justifyContent:'center'},buyText:{color:'#fff',fontWeight:'900'}
