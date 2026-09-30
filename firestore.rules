@@ -106,7 +106,25 @@ service cloud.firestore {
         && request.resource.data.reviewerId == request.auth.uid
         && request.resource.data.revieweeId != request.auth.uid
         && request.resource.data.rating is int
-        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 1000
+        && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'completed'
+        && request.auth.uid in get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.participantIds
+        && request.resource.data.revieweeId in get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.participantIds
+        && request.resource.data.revieweeId != request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 10
+        && request.resource.data.message.size() <= 4000
+        && request.resource.data.status == 'open';
       allow update, delete: if false;
     }
 
