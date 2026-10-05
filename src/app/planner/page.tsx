@@ -1,0 +1,1 @@
+import { CalendarDays } from "lucide-react"; export default function Planner(){return <><p className="eyebrow">PLANNER</p><h1>Publishing calendar</h1><div className="panel empty"><CalendarDays size={34}/><b>No scheduled content yet</b><span>Create a post and choose a publishing time to start your calendar.</span></div></>}
