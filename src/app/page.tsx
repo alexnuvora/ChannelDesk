@@ -1,12 +1,22 @@
+import { redirect } from "next/navigation";
 import { CalendarDays, ChartNoAxesCombined, CirclePlay, Sparkles } from "lucide-react";
+import { AppShell } from "@/components/app-shell";
+import { createClient } from "@/lib/supabase/server";
 
-const networks = ["YouTube","TikTok","Instagram","Facebook","LinkedIn","X","Threads","Bluesky","Pinterest","Google Business"];
-
-export default function Home() {
- return <main className="shell">
-  <aside className="sidebar"><div className="brand"><span>CD</span>ChannelDesk</div><nav><b>Overview</b><a>Planner</a><a>Create</a><a>Analytics</a><a>Media</a><a>Connections</a></nav><div className="ai"><Sparkles size={18}/><strong>ChannelDesk AI</strong><small>Research, clip, write and schedule from one conversation.</small></div></aside>
-  <section className="content"><header><div><p className="eyebrow">SOCIAL COMMAND CENTRE</p><h1>Good morning.</h1><p>Everything you publish, measure and improve — in one place.</p></div><button>+ Create post</button></header>
-  <div className="stats"><article><CalendarDays/><span>Scheduled</span><strong>18</strong><small>Next 7 days</small></article><article><CirclePlay/><span>Published</span><strong>124</strong><small>This month</small></article><article><ChartNoAxesCombined/><span>Reach</span><strong>842K</strong><small>Across channels</small></article><article><Sparkles/><span>AI opportunities</span><strong>7</strong><small>Ready to review</small></article></div>
-  <div className="grid"><article className="panel"><div className="panelhead"><div><p className="eyebrow">PLANNER</p><h2>Upcoming content</h2></div><a>Open calendar →</a></div><div className="empty"><CalendarDays size={32}/><b>Your publishing command centre</b><span>Connect channels and ChannelDesk will coordinate drafts, approvals, schedules and publishing.</span></div></article><article className="panel"><p className="eyebrow">CONNECTED NETWORKS</p><h2>Publish everywhere</h2><div className="networks">{networks.map(n=><span key={n}>{n}</span>)}</div><button className="secondary">Connect a channel</button></article></div>
- </section></main>
+export default async function Home() {
+ const supabase=await createClient();
+ const {data:claims}=await supabase.auth.getClaims();
+ if(!claims?.claims?.sub) redirect("/login");
+ const [{data:memberships},{count:scheduled},{count:published},{count:connections}]=await Promise.all([
+   supabase.from("workspace_members").select("workspace_id,role,workspaces(name,slug)").limit(1),
+   supabase.from("publications").select("*",{count:"exact",head:true}).eq("state","scheduled"),
+   supabase.from("publications").select("*",{count:"exact",head:true}).eq("state","published"),
+   supabase.from("social_connections").select("*",{count:"exact",head:true}).eq("active",true),
+ ]);
+ const membership=memberships?.[0];
+ const workspace=Array.isArray(membership?.workspaces)?membership.workspaces[0]:membership?.workspaces;
+ return <AppShell><header><div><p className="eyebrow">SOCIAL COMMAND CENTRE</p><h1>{workspace?.name ?? "Your workspace"}</h1><p>Everything you publish, measure and improve — in one place.</p></div><a className="button" href="/create">+ Create post</a></header>
+ <div className="stats"><article><CalendarDays/><span>Scheduled</span><strong>{scheduled ?? 0}</strong><small>In your queue</small></article><article><CirclePlay/><span>Published</span><strong>{published ?? 0}</strong><small>All time</small></article><article><ChartNoAxesCombined/><span>Connections</span><strong>{connections ?? 0}</strong><small>Active channels</small></article><article><Sparkles/><span>Workspace role</span><strong className="role">{membership?.role ?? "—"}</strong><small>Current access</small></article></div>
+ <div className="grid"><article className="panel"><div className="panelhead"><div><p className="eyebrow">PLANNER</p><h2>Upcoming content</h2></div><a href="/planner">Open calendar →</a></div><div className="empty"><CalendarDays size={32}/><b>{scheduled ? "Your queue is ready" : "Nothing scheduled yet"}</b><span>{scheduled ? "Open Planner to review your upcoming publishing queue." : "Create a publication and schedule it to start building your content calendar."}</span></div></article><article className="panel"><p className="eyebrow">CONNECTED NETWORKS</p><h2>Publish everywhere</h2><div className="empty compact"><b>{connections ?? 0} active</b><span>Connect your first social account to start publishing from ChannelDesk.</span><a className="button secondary" href="/connections">Manage connections</a></div></article></div>
+ </AppShell>;
 }
