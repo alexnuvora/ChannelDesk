@@ -94,7 +94,9 @@ async function uploadYouTube(connection:any,payload:any){
  const init=await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",{method:"POST",headers:{authorization:`Bearer ${access}`,"content-type":"application/json; charset=UTF-8","x-upload-content-length":length,"x-upload-content-type":mime},body:JSON.stringify({snippet:{title:payload.title,description:payload.description,tags:payload.tags},status})});
  if(!init.ok) throw new Error(`YouTube upload initialization failed (HTTP ${init.status}): ${await init.text()}`);
  const location=init.headers.get("location"); if(!location) throw new Error("YouTube did not return a resumable upload URL.");
- const upload=await fetch(location,{method:"PUT",headers:{"content-type":mime,"content-length":length},body:media.body as any,duplex:"half" as any});
+ const videoBytes=await media.arrayBuffer();
+ if(videoBytes.byteLength!==Number(length)) throw new Error("Downloaded media length does not match Content-Length.");
+ const upload=await fetch(location,{method:"PUT",headers:{"content-type":mime,"content-length":String(videoBytes.byteLength)},body:videoBytes});
  if(!upload.ok) throw new Error(`YouTube upload failed (HTTP ${upload.status}): ${await upload.text()}`);
  return await upload.json() as {id:string;status?:{uploadStatus?:string;privacyStatus?:string;publishAt?:string}};
 }
