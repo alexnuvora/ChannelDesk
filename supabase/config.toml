@@ -1,0 +1,3 @@
+# ChannelDesk Supabase CLI configuration
+# Project binding is non-secret. Credentials must be supplied via environment/CI secrets.
+project_id = "zmwfyrqbgtvtuajbjnzm"
