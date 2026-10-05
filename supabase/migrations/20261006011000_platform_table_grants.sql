@@ -4,3 +4,5 @@ grant insert,update,delete on public.content_templates,public.inbox_threads,publ
 grant insert,update on public.approval_requests to authenticated;
 grant insert,update,delete on public.analytics_snapshots to authenticated;
 grant usage,select on sequence public.analytics_snapshots_id_seq to authenticated;
+
+-- Revalidated after restoring the service-role test context.
