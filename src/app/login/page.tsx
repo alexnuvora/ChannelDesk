@@ -1,4 +1,4 @@
-import { signIn, signUp } from "@/app/auth/actions";
+import { signIn, signInWithGoogle, signUp } from "@/app/auth/actions";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const params = await searchParams;
@@ -8,6 +8,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <p className="muted">Sign in to manage your channels, publishing calendar and performance.</p>
     {params.error && <p className="notice error">{params.error}</p>}
     {params.message && <p className="notice">{params.message}</p>}
+    <form action={signInWithGoogle}><button className="google-button auth-google" type="submit"><span className="google-g">G</span> Continue with Google</button></form>
+    <div className="auth-divider"><span>or continue with email</span></div>
     <form className="auth-form"><label>Email<input name="email" type="email" required autoComplete="email"/></label>
       <label>Password<input name="password" type="password" required minLength={8} autoComplete="current-password"/></label>
       <button formAction={signIn}>Sign in</button><button className="secondary" formAction={signUp}>Create account</button>
