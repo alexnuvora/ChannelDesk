@@ -5,9 +5,10 @@ export const MCP_SCOPES=["channeldesk.read","channeldesk.publish"] as const;
 export const CHATGPT_CLIENT_ID="https://chatgpt.com/oauth/client.json";
 export const CHATGPT_STABLE_REDIRECT="https://chatgpt.com/connector_platform_oauth_redirect";
 
-export function appOrigin(){ return (process.env.NEXT_PUBLIC_APP_URL??"").replace(/\/$/,""); }
-export function mcpResource(){ const origin=appOrigin(); if(!origin) throw new Error("NEXT_PUBLIC_APP_URL is not configured."); return origin+"/mcp"; }
-export function issuer(){ const origin=appOrigin(); if(!origin) throw new Error("NEXT_PUBLIC_APP_URL is not configured."); return origin; }
+export const CHANNELDESK_ORIGIN="https://channel-desk-61xl.vercel.app";
+export function appOrigin(){ return (process.env.NEXT_PUBLIC_APP_URL || process.env.CHANNELDESK_PUBLIC_URL || CHANNELDESK_ORIGIN).replace(/\/$/,""); }
+export function mcpResource(){ return appOrigin()+"/mcp"; }
+export function issuer(){ return appOrigin(); }
 export function admin(){
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key) throw new Error("ChannelDesk server database credentials are not configured.");
