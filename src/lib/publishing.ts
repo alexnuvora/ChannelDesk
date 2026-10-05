@@ -72,9 +72,10 @@ export async function createYouTubePublication(input:{title:string;description?:
  if(te) throw te;
  try{
    const result=await uploadYouTube(connection,payload);
-   await db.from("publication_targets").update({state:scheduled?"scheduled":"published",external_post_id:result.id,external_url:`https://www.youtube.com/watch?v=${result.id}`,published_at:scheduled?null:new Date().toISOString(),attempts:1}).eq("id",target.id);
-   await db.from("publications").update({state:scheduled?"scheduled":"published"}).eq("id",pub.id);
-   return {publicationId:pub.id,targetId:target.id,videoId:result.id,url:`https://www.youtube.com/watch?v=${result.id}`,state:scheduled?"scheduled":"published",scheduledFor:scheduled?.toISOString()??null};
+   const finalState=scheduled?"scheduled":(result.status?.uploadStatus==="processed"&&result.status?.privacyStatus===payload.privacy?"published":"publishing");
+   await db.from("publication_targets").update({state:finalState,external_post_id:result.id,external_url:`https://www.youtube.com/watch?v=${result.id}`,published_at:finalState==="published"?new Date().toISOString():null,attempts:1}).eq("id",target.id);
+   await db.from("publications").update({state:finalState}).eq("id",pub.id);
+   return {publicationId:pub.id,targetId:target.id,videoId:result.id,url:`https://www.youtube.com/watch?v=${result.id}`,state:finalState,scheduledFor:scheduled?.toISOString()??null,youtubeStatus:result.status??null};
  }catch(e){
    const msg=e instanceof Error?e.message:"YouTube upload failed";
    await db.from("publication_targets").update({state:"failed",error_code:"youtube_upload_failed",error_message:msg,attempts:1}).eq("id",target.id);
@@ -96,7 +97,7 @@ async function uploadYouTube(connection:any,payload:any){
  const location=init.headers.get("location"); if(!location) throw new Error("YouTube did not return a resumable upload URL.");
  const upload=await fetch(location,{method:"PUT",headers:{"content-type":mime,"content-length":length},body:media.body as any,duplex:"half" as any});
  if(!upload.ok) throw new Error(`YouTube upload failed (HTTP ${upload.status}): ${await upload.text()}`);
- return await upload.json() as {id:string};
+ return await upload.json() as {id:string;status?:{uploadStatus?:string;privacyStatus?:string;publishAt?:string}};
 }
 export async function getPublicationStatus(id:string,workspaceId=mcpWorkspaceId()){
  const {data,error}=await admin().from("publications").select("id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,attempts)").eq("workspace_id",workspaceId).eq("id",id).single();
