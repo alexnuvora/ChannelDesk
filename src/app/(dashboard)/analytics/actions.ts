@@ -1,8 +1,3 @@
 'use server';
-import {redirect} from 'next/navigation';
-import {createClient} from '@/lib/supabase/server';
-import {syncYouTubeAnalytics} from '@/lib/publishing';
-export async function syncYouTubeAnalyticsAction(formData:FormData){
- const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect('/login');const connectionId=String(formData.get('connectionId')||'');const {data:c}=await s.from('social_connections').select('workspace_id').eq('id',connectionId).eq('network','youtube').eq('active',true).maybeSingle();if(!c)redirect('/analytics?error='+encodeURIComponent('Choose an active YouTube connection.'));
- try{const r=await syncYouTubeAnalytics(connectionId,c.workspace_id,user.id,30);redirect('/analytics?message='+encodeURIComponent('YouTube analytics synced for '+r.days+' days.'));}catch(e){redirect('/analytics?error='+encodeURIComponent(e instanceof Error?e.message:'Analytics sync failed.'));}
-}
+import {redirect} from 'next/navigation';import {createClient} from '@/lib/supabase/server';import {syncYouTubeAnalytics} from '@/lib/publishing';
+export async function syncYouTubeAnalyticsAction(formData:FormData){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect('/login');const connectionId=String(formData.get('connectionId')||'');const {data:c}=await s.from('social_connections').select('workspace_id').eq('id',connectionId).eq('network','youtube').eq('active',true).maybeSingle();if(!c)redirect('/analytics?error='+encodeURIComponent('Choose an active YouTube connection.'));let url='';try{const r=await syncYouTubeAnalytics(connectionId,c.workspace_id,user.id,30);url='/analytics?message='+encodeURIComponent('YouTube analytics synced for '+r.days+' days.');}catch(e){url='/analytics?error='+encodeURIComponent(e instanceof Error?e.message:'Analytics sync failed.');}redirect(url);}
