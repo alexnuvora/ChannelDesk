@@ -38,7 +38,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
   const workspaces=(members||[]).filter(m=>["owner","admin","editor"].includes(m.role)).map(m=>({workspace_id:m.workspace_id,name:(Array.isArray(m.workspaces)?m.workspaces[0]:m.workspaces)?.name||m.workspace_id}));
   const {data:connections}=await supabase.from("social_connections").select("network,display_name,active").eq("active",true);
   const connected=new Map((connections ?? []).map(c=>[c.network as Network,c.display_name]));
-  const error=params.error ? (errorMessages[params.error] ?? params.error) : null;
+  const error=params.error ? (errorMessages[params.error] ?? (params.error.startsWith('tiktok_token_exchange_failed:') ? 'TikTok rejected the configured client credentials. Check the ChannelDesk TikTok Client Key and Client Secret, redeploy, then reconnect.' : params.error)) : null;
   return <><p className="eyebrow">CONNECTIONS</p><h1>Social channels</h1>
     <p className="muted">Connect the accounts ChannelDesk can publish to and measure.</p>
     {error && <p className="notice error" role="alert">{error}</p>}
