@@ -23,7 +23,10 @@ export async function GET(request:NextRequest){
 }
 export async function POST(request:NextRequest){
  try{
-  if(request.headers.get('origin')!==appOrigin()||request.headers.get('sec-fetch-site')==='cross-site')return html('Connection request rejected','<p>Start this connection again from ChatGPT.</p>',403);
+  const origin=request.headers.get('origin');const fetchSite=request.headers.get('sec-fetch-site');
+  // Some browser/Vercel form submissions omit Origin. The signed, HttpOnly, SameSite consent
+  // cookie below is the authoritative CSRF binding, so reject only an explicitly foreign origin.
+  if((origin&&origin!==appOrigin())||fetchSite==='cross-site')return html('Connection request rejected','<p>Start this connection again from ChatGPT.</p>',403);
   const text=await request.text();if(text.length>12000)return html('Request too large','<p>Start again from ChatGPT.</p>',413);
   const body=new URLSearchParams(text);const query=body.get('request')||'',nonce=body.get('nonce')||'';const q=validateAuthorization(new URLSearchParams(query));
   const supabase=await createClient();const {data:{user},error}=await supabase.auth.getUser();if(error||!user)return html('Sign in again','<p>Your sign-in expired. Return to ChatGPT and reconnect.</p>',401);
