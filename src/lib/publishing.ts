@@ -128,7 +128,11 @@ export async function rescheduleYouTubePublication(id:string,scheduledFor:string
  const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
  const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("id",target.connection_id).eq("workspace_id",workspaceId).single(); if(ce) throw ce;
  const access=await youtubeAccessToken(conn);
- const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:{privacyStatus:"private",publishAt:when.toISOString()}})});
+ const current=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(target.external_post_id)}`,{headers:{authorization:`Bearer ${access}`}});
+ if(!current.ok) throw new Error(`YouTube status lookup failed (HTTP ${current.status}).`);
+ const currentBody=await current.json() as {items?:Array<{status?:any}>}; const s=currentBody.items?.[0]?.status??{};
+ const writable={privacyStatus:"private",publishAt:when.toISOString(),...(typeof s.selfDeclaredMadeForKids==="boolean"?{selfDeclaredMadeForKids:s.selfDeclaredMadeForKids}:{}),...(typeof s.embeddable==="boolean"?{embeddable:s.embeddable}:{}),...(typeof s.publicStatsViewable==="boolean"?{publicStatsViewable:s.publicStatsViewable}:{}),...(s.license?{license:s.license}:{})};
+ const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:writable})});
  if(!res.ok) throw new Error(`YouTube reschedule failed (HTTP ${res.status}): ${await res.text()}`);
  await db.from("publication_targets").update({state:"scheduled"}).eq("id",target.id); await db.from("publications").update({state:"scheduled",scheduled_for:when.toISOString()}).eq("id",id);
  return {publicationId:id,videoId:target.external_post_id,state:"scheduled",scheduledFor:when.toISOString()};
@@ -138,7 +142,11 @@ export async function cancelYouTubeSchedule(id:string,workspaceId=mcpWorkspaceId
  const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
  const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("id",target.connection_id).eq("workspace_id",workspaceId).single(); if(ce) throw ce;
  const access=await youtubeAccessToken(conn);
- const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:{privacyStatus:"private"}})});
+ const current=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(target.external_post_id)}`,{headers:{authorization:`Bearer ${access}`}});
+ if(!current.ok) throw new Error(`YouTube status lookup failed (HTTP ${current.status}).`);
+ const currentBody=await current.json() as {items?:Array<{status?:any}>}; const s=currentBody.items?.[0]?.status??{};
+ const writable={privacyStatus:"private",...(typeof s.selfDeclaredMadeForKids==="boolean"?{selfDeclaredMadeForKids:s.selfDeclaredMadeForKids}:{}),...(typeof s.embeddable==="boolean"?{embeddable:s.embeddable}:{}),...(typeof s.publicStatsViewable==="boolean"?{publicStatsViewable:s.publicStatsViewable}:{}),...(s.license?{license:s.license}:{})};
+ const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:writable})});
  if(!res.ok) throw new Error(`YouTube schedule cancellation failed (HTTP ${res.status}): ${await res.text()}`);
  await db.from("publication_targets").update({state:"cancelled"}).eq("id",target.id); await db.from("publications").update({state:"cancelled",scheduled_for:null}).eq("id",id);
  return {publicationId:id,videoId:target.external_post_id,state:"cancelled",youtubePrivacy:"private"};
