@@ -4,7 +4,11 @@ import {cancelYouTubeSchedule,createYouTubePublication,getCalendar,getPublicatio
 import {admin,assertWorkspaceAccess} from './mcp-oauth';
 import {logFailure} from './config';
 const result=(value:unknown)=>({content:[{type:'text' as const,text:JSON.stringify(value,null,2)}],structuredContent:{result:value}});
-function failure(error:unknown){logFailure('mcp.tool.failed',error);return {content:[{type:'text' as const,text:error instanceof Error?error.message:'The operation failed. Check ChannelDesk server configuration and migrations.'}],isError:true};}
+function failure(error:unknown){
+ logFailure('mcp.tool.failed',error);
+ const message=error instanceof Error&&error.message?error.message:'ChannelDesk could not complete the operation.';
+ return {content:[{type:'text' as const,text:message}],structuredContent:{error:{message}},isError:true};
+}
 function metadata(write=false){const scopes=write?['channeldesk.read','channeldesk.publish']:['channeldesk.read'];return {_meta:{securitySchemes:[{type:'oauth2',scopes}]},annotations:{readOnlyHint:!write,destructiveHint:write,idempotentHint:!write,openWorldHint:true}};}
 export function buildMcp(userId:string,scopes:string[]){
  const server=new McpServer({name:'ChannelDesk',version:'0.3.0'},{capabilities:{tools:{}}});
