@@ -90,7 +90,6 @@ export const rescheduleYouTubePublication=(id:string,scheduledFor:string,workspa
 export const cancelYouTubeSchedule=(id:string,workspaceId:string,actorId:string)=>changeSchedule(id,workspaceId,actorId,null);
 
 
-type TikTokPrivacy='PUBLIC_TO_EVERYONE'|'MUTUAL_FOLLOW_FRIENDS'|'FOLLOWER_OF_CREATOR'|'SELF_ONLY';
 const tiktokPublishInput=z.object({connectionId:z.string().uuid(),caption:z.string().max(2200).default(''),mediaUrl:z.string().url(),privacy:z.enum(['PUBLIC_TO_EVERYONE','MUTUAL_FOLLOW_FRIENDS','FOLLOWER_OF_CREATOR','SELF_ONLY']),disableComment:z.boolean().default(false),disableDuet:z.boolean().default(false),disableStitch:z.boolean().default(false),requestId:z.string().min(8).max(128)}).strict();
 const tiktokDraftInput=z.object({connectionId:z.string().uuid(),mediaUrl:z.string().url(),requestId:z.string().min(8).max(128)}).strict();
 
