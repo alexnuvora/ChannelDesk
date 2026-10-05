@@ -1,0 +1,1 @@
+export default function Analytics(){return <><p className="eyebrow">ANALYTICS</p><h1>Performance</h1><div className="panel empty"><b>No analytics yet</b><span>Performance data will appear after you connect a channel and publish content.</span></div></>}
