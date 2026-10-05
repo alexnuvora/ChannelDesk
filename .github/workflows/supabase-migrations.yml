@@ -7,6 +7,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
+      - ".github/workflows/supabase-migrations.yml"
 
 permissions:
   contents: read
@@ -30,10 +31,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Supabase CLI
+        run: npm install --no-save --ignore-scripts=false supabase@latest
 
       - name: Verify Supabase CLI
         run: npx supabase --version
