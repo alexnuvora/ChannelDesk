@@ -41,8 +41,9 @@ export async function GET(request: Request) {
       }
       const forwardedHost = request.headers.get("x-forwarded-host");
       const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
-      if (process.env.NODE_ENV !== "development" && forwardedHost) return NextResponse.redirect(`${forwardedProto}://${forwardedHost}${next}`);
-      return NextResponse.redirect(`${url.origin}${next}`);
+      const canonicalOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || url.origin;
+      const targetOrigin = process.env.NODE_ENV !== "development" && forwardedHost ? `${forwardedProto}://${forwardedHost}` : canonicalOrigin;
+      return NextResponse.redirect(`${targetOrigin}${next}`);
     }
     return NextResponse.redirect(`${url.origin}/login?error=${encodeURIComponent(error.message)}`);
   }
