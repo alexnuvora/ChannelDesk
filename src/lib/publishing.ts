@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { createDecipheriv, createCipheriv, randomBytes } from "crypto";
+import { createDecipheriv, createCipheriv, randomBytes, randomUUID } from "crypto";
 
 function admin(){
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL; const key=process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,8 +53,11 @@ export async function getCalendar(from:string,to:string,workspaceId=mcpWorkspace
  const {data,error}=await admin().from("publications").select("id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,social_connections(network,display_name))").eq("workspace_id",workspaceId).gte("scheduled_for",from).lte("scheduled_for",to).order("scheduled_for");
  if(error) throw error; return data??[];
 }
-export async function createYouTubePublication(input:{title:string;description?:string;mediaUrl:string;scheduledFor?:string;privacy?: "private"|"unlisted"|"public";madeForKids?:boolean;tags?:string[]},workspaceId=mcpWorkspaceId()){
+export async function createYouTubePublication(input:{title:string;description?:string;mediaUrl:string;scheduledFor?:string;privacy?: "private"|"unlisted"|"public";madeForKids?:boolean;tags?:string[];requestId?:string},workspaceId=mcpWorkspaceId()){
  const db=admin();
+ const idem=`youtube:${workspaceId}:${input.requestId??randomUUID()}`;
+ const {data:existing}=await db.from("publication_targets").select("publication_id,external_post_id,external_url,state").eq("idempotency_key",idem).maybeSingle();
+ if(existing) return {publicationId:existing.publication_id,videoId:existing.external_post_id,url:existing.external_url,state:existing.state,idempotentReplay:true};
  const {data:connections,error:ce}=await db.from("social_connections").select("*").eq("workspace_id",workspaceId).eq("network","youtube").eq("active",true).limit(1);
  if(ce) throw ce; const connection=connections?.[0]; if(!connection) throw new Error("No active YouTube connection.");
  const mediaUrl=assertPublicMediaUrl(input.mediaUrl);
@@ -64,13 +67,12 @@ export async function createYouTubePublication(input:{title:string;description?:
  if(me) throw me; const actor=members?.[0]?.user_id; if(!actor) throw new Error("Workspace has no member to attribute this publication to.");
  const {data:pub,error:pe}=await db.from("publications").insert({workspace_id:workspaceId,author_id:actor,text:input.description??"",state:scheduled?"scheduled":"publishing",scheduled_for:scheduled?.toISOString()??null}).select("id").single();
  if(pe) throw pe;
- const idem=`youtube:${pub.id}`;
  const payload={title:input.title,description:input.description??"",mediaUrl,tags:input.tags??[],madeForKids:input.madeForKids??false,privacy:input.privacy??"public",scheduledFor:scheduled?.toISOString()??null};
  const {data:target,error:te}=await db.from("publication_targets").insert({publication_id:pub.id,connection_id:connection.id,network_payload:payload,state:scheduled?"scheduled":"publishing",idempotency_key:idem}).select("id").single();
  if(te) throw te;
  try{
    const result=await uploadYouTube(connection,payload);
-   await db.from("publication_targets").update({state:"published",external_post_id:result.id,external_url:`https://www.youtube.com/watch?v=${result.id}`,published_at:scheduled?null:new Date().toISOString(),attempts:1}).eq("id",target.id);
+   await db.from("publication_targets").update({state:scheduled?"scheduled":"published",external_post_id:result.id,external_url:`https://www.youtube.com/watch?v=${result.id}`,published_at:scheduled?null:new Date().toISOString(),attempts:1}).eq("id",target.id);
    await db.from("publications").update({state:scheduled?"scheduled":"published"}).eq("id",pub.id);
    return {publicationId:pub.id,targetId:target.id,videoId:result.id,url:`https://www.youtube.com/watch?v=${result.id}`,state:scheduled?"scheduled":"published",scheduledFor:scheduled?.toISOString()??null};
  }catch(e){
