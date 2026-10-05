@@ -100,3 +100,43 @@ export async function getPublicationStatus(id:string,workspaceId=mcpWorkspaceId(
  const {data,error}=await admin().from("publications").select("id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,attempts)").eq("workspace_id",workspaceId).eq("id",id).single();
  if(error) throw error; return data;
 }
+
+export async function syncYouTubePublication(id:string,workspaceId=mcpWorkspaceId()){
+ const db=admin();
+ const {data:pub,error}=await db.from("publications").select("id,state,publication_targets(id,connection_id,external_post_id,state)").eq("workspace_id",workspaceId).eq("id",id).single();
+ if(error) throw error;
+ const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id);
+ if(!target) return pub;
+ const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("workspace_id",workspaceId).eq("id",target.connection_id).eq("network","youtube").single();
+ if(ce) throw ce;
+ const access=await youtubeAccessToken(conn);
+ const res=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(target.external_post_id)}`,{headers:{authorization:`Bearer ${access}`}});
+ if(!res.ok) throw new Error(`YouTube status lookup failed (HTTP ${res.status}).`);
+ const body=await res.json() as {items?:Array<{status?:{uploadStatus?:string;privacyStatus?:string;publishAt?:string;failureReason?:string;rejectionReason?:string}}>};
+ const status=body.items?.[0]?.status; if(!status) throw new Error("The YouTube video no longer exists or is inaccessible.");
+ let state=target.state; if(status.uploadStatus==="failed"||status.uploadStatus==="rejected") state="failed"; else if(status.privacyStatus==="public") state="published"; else if(status.publishAt) state="scheduled";
+ await db.from("publication_targets").update({state,error_code:status.failureReason??status.rejectionReason??null,error_message:null,published_at:state==="published"?new Date().toISOString():null}).eq("id",target.id);
+ await db.from("publications").update({state}).eq("id",id);
+ return {publicationId:id,videoId:target.external_post_id,state,youtube:status,url:`https://www.youtube.com/watch?v=${target.external_post_id}`};
+}
+export async function rescheduleYouTubePublication(id:string,scheduledFor:string,workspaceId=mcpWorkspaceId()){
+ const when=new Date(scheduledFor); if(!Number.isFinite(when.getTime())||when.getTime()<=Date.now()) throw new Error("scheduledFor must be a future ISO-8601 date.");
+ const db=admin(); const {data:pub,error}=await db.from("publications").select("publication_targets(id,connection_id,external_post_id)").eq("workspace_id",workspaceId).eq("id",id).single(); if(error) throw error;
+ const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
+ const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("id",target.connection_id).eq("workspace_id",workspaceId).single(); if(ce) throw ce;
+ const access=await youtubeAccessToken(conn);
+ const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:{privacyStatus:"private",publishAt:when.toISOString()}})});
+ if(!res.ok) throw new Error(`YouTube reschedule failed (HTTP ${res.status}): ${await res.text()}`);
+ await db.from("publication_targets").update({state:"scheduled"}).eq("id",target.id); await db.from("publications").update({state:"scheduled",scheduled_for:when.toISOString()}).eq("id",id);
+ return {publicationId:id,videoId:target.external_post_id,state:"scheduled",scheduledFor:when.toISOString()};
+}
+export async function cancelYouTubeSchedule(id:string,workspaceId=mcpWorkspaceId()){
+ const db=admin(); const {data:pub,error}=await db.from("publications").select("publication_targets(id,connection_id,external_post_id)").eq("workspace_id",workspaceId).eq("id",id).single(); if(error) throw error;
+ const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
+ const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("id",target.connection_id).eq("workspace_id",workspaceId).single(); if(ce) throw ce;
+ const access=await youtubeAccessToken(conn);
+ const res=await fetch("https://www.googleapis.com/youtube/v3/videos?part=status",{method:"PUT",headers:{authorization:`Bearer ${access}`,"content-type":"application/json"},body:JSON.stringify({id:target.external_post_id,status:{privacyStatus:"private"}})});
+ if(!res.ok) throw new Error(`YouTube schedule cancellation failed (HTTP ${res.status}): ${await res.text()}`);
+ await db.from("publication_targets").update({state:"cancelled"}).eq("id",target.id); await db.from("publications").update({state:"cancelled",scheduled_for:null}).eq("id",id);
+ return {publicationId:id,videoId:target.external_post_id,state:"cancelled",youtubePrivacy:"private"};
+}
