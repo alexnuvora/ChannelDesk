@@ -81,9 +81,8 @@ async function changeSchedule(id:string,workspaceId:string,actorId:string,date:s
   if(!r.ok){const detail=await r.json().catch(()=>null);const reason=detail?.error?.errors?.[0]?.reason||detail?.error?.message;throw new Error(`YouTube schedule update failed (HTTP ${r.status})${reason?`: ${reason}`:''}.`);}
   const state=date?'scheduled':'cancelled';
   const scheduledFor=date?new Date(date).toISOString():null;
-  const now=new Date().toISOString();
-  const {error:targetError}=await db.from('publication_targets').update({state,error_code:null,error_message:null,updated_at:now}).eq('id',target.id);if(targetError)throw targetError;
-  const {error:pubError}=await db.from('publications').update({state,scheduled_for:scheduledFor,updated_at:now}).eq('id',id).eq('workspace_id',workspaceId).eq('state','needs_review');if(pubError)throw pubError;
+  const {error:persistError}=await db.rpc('update_youtube_delivery',{p_publication_id:id,p_target_id:target.id,p_actor_id:actorId,p_state:state,p_scheduled_for:scheduledFor,p_error:null,p_action:date?'youtube.rescheduled':'youtube.schedule_cancelled',p_expected_updated_at:claim.updated_at});
+  if(persistError)throw new Error(`YouTube accepted the schedule change, but ChannelDesk could not save it (${persistError.code||'database_error'}).`);
   return {publicationId:id,videoId:target.external_post_id,state,scheduledFor,youtubePrivacy:'private'};
  }catch(e){logFailure('youtube.schedule_update_failed',e);const message=e instanceof Error?e.message:'The schedule change was not confirmed.';throw new Error(`${message} Sync this video’s status before trying again.`);}
 }
