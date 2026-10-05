@@ -51,9 +51,14 @@ async function uploadYouTube(connection:Connection,payload:any){
   const result=await upload.json().catch(()=>{throw new UploadError('YouTube returned an unreadable upload result. Check YouTube Studio.',true);});if(typeof result?.id!=='string')throw new UploadError('YouTube did not return a video ID. Check YouTube Studio.',true);return result as {id:string;status?:VideoStatus};
  }finally{media.cancel();}
 }
-export async function getPublicationStatus(id:string,workspaceId:string){const {data,error}=await admin().from('publications').select('id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,attempts)').eq('workspace_id',workspaceId).eq('id',id).single();if(error)throw error;return data;}
+export async function getPublicationStatus(id:string,workspaceId:string){
+ const {data,error}=await admin().from('publications').select('id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,attempts)').eq('workspace_id',workspaceId).eq('id',id).maybeSingle();
+ if(error)throw new Error('ChannelDesk could not read this publication.');
+ if(!data)throw new Error('Publication not found in this workspace.');
+ return data;
+}
 async function loadTarget(id:string,workspaceId:string,actorId:string){
- await assertWorkspaceAccess(actorId,workspaceId,true);const db=admin();const {data:pub,error}=await db.from('publications').select('id,state,scheduled_for,updated_at,publication_targets(id,connection_id,external_post_id,state,network_payload)').eq('id',id).eq('workspace_id',workspaceId).single();if(error)throw error;
+ await assertWorkspaceAccess(actorId,workspaceId,true);const db=admin();const {data:pub,error}=await db.from('publications').select('id,state,scheduled_for,updated_at,publication_targets(id,connection_id,external_post_id,state,network_payload)').eq('id',id).eq('workspace_id',workspaceId).maybeSingle();if(error)throw new Error('ChannelDesk could not read this publication.');if(!pub)throw new Error('Publication not found in this workspace.');
  const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id);if(!target)throw new Error('No confirmed YouTube video ID is stored for this publication.');const {data:connection,error:ce}=await db.from('social_connections').select('*').eq('id',target.connection_id).eq('workspace_id',workspaceId).eq('network','youtube').eq('active',true).single();if(ce)throw ce;const access=await youtubeAccessToken(connection);
  const r=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=status&id=${encodeURIComponent(target.external_post_id)}`,{headers:{Authorization:`Bearer ${access}`},signal:AbortSignal.timeout(20000),redirect:'error'});if(!r.ok)throw new Error(`YouTube status lookup failed (HTTP ${r.status}).`);const body=await r.json();const status=body.items?.[0]?.status as VideoStatus|undefined;if(!status)throw new Error('This YouTube video is missing or inaccessible.');return {pub,target,access,status,db};
 }
