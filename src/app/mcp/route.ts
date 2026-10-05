@@ -32,7 +32,7 @@ function authorized(request:Request){
 }
 async function handle(request:Request){
  if(!authorized(request)) return new Response(JSON.stringify({error:"unauthorized"}),{status:401,headers:{"content-type":"application/json","www-authenticate":'Bearer realm="ChannelDesk MCP"'}});
- return mcp(request);
+ return mcp.fetch(request);
 }
 export const GET=handle;
 export const POST=handle;
