@@ -1,6 +1,7 @@
 import { NETWORKS, type Network } from "@/lib/networks";
 import { createClient } from "@/lib/supabase/server";
 import { GoogleConnectButton } from "./google-connect-button";
+import { TikTokConnectButton } from "./tiktok-connect-button";
 
 const labels: Record<Network,string> = {
   youtube:"YouTube", tiktok:"TikTok", instagram:"Instagram", facebook:"Facebook",
@@ -20,6 +21,13 @@ const errorMessages: Record<string,string> = {
   youtube_authorization_failed:"The YouTube authorization token was rejected. Reconnect the account and approve access.",
   youtube_channel_lookup_failed:"ChannelDesk could not read the selected YouTube channel. Check that YouTube Data API v3 is enabled for this OAuth project.",
   youtube_channel_missing:"No YouTube channel was found for that Google account.",
+  tiktok_not_configured:"TikTok OAuth is not configured on this deployment.",
+  tiktok_oauth_state_missing:"The TikTok connection session expired. Please try again.",
+  tiktok_oauth_state_invalid:"The TikTok connection could not be verified. Please try again.",
+  tiktok_authorization_denied:"TikTok authorization was cancelled or denied.",
+  tiktok_token_exchange_failed:"TikTok authorization succeeded, but ChannelDesk could not exchange the authorization code.",
+  tiktok_basic_scope_missing:"TikTok did not grant the basic profile permission.",
+  tiktok_profile_lookup_failed:"ChannelDesk could not read the selected TikTok profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -39,9 +47,9 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
       const account=connected.get(network);
       return <article className="panel connection" key={network}>
         <b>{labels[network]}</b><span>{account ? account : "Not connected"}</span>
-        {account&&network!=="youtube" ? <span>Account linked; publishing adapter pending</span> :
-          googleNetworks.has(network) ? <GoogleConnectButton workspaces={workspaces} label={account?"Reconnect YouTube":"Connect with Google"} /> :
-          <button disabled>Coming next</button>}
+        {network==="youtube" ? <GoogleConnectButton workspaces={workspaces} label={account?"Reconnect YouTube":"Connect with Google"} /> :
+          network==="tiktok" ? <TikTokConnectButton workspaces={workspaces} label={account?"Reconnect TikTok":"Connect TikTok"} /> :
+          account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
   </>;
