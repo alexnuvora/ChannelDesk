@@ -1,4 +1,5 @@
 -- Workspace-scoped private media storage for ChannelDesk.
+-- Private bucket objects are addressed by workspace UUID for RLS isolation.
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
 values ('channeldesk-media','channeldesk-media',false,268435456,array['video/mp4','video/quicktime','video/webm','image/jpeg','image/png','image/webp'])
 on conflict (id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
