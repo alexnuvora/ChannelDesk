@@ -19,6 +19,7 @@ const errorMessages: Record<string,string> = {
   google_token_exchange_failed:"Google authorization succeeded, but ChannelDesk could not exchange the authorization code.",
   youtube_api_not_enabled:"YouTube Data API v3 is not enabled for the Google Cloud project used by ChannelDesk.",
   youtube_scope_missing:"Google did not grant ChannelDesk the required YouTube permission. Reconnect and approve the YouTube permissions.",
+  youtube_management_scope_missing:"Google did not grant all required YouTube publishing and analytics permissions. Reconnect and approve every requested permission.",
   youtube_authorization_failed:"The YouTube authorization token was rejected. Reconnect the account and approve access.",
   youtube_channel_lookup_failed:"ChannelDesk could not read the selected YouTube channel. Check that YouTube Data API v3 is enabled for this OAuth project.",
   youtube_channel_missing:"No YouTube channel was found for that Google account.",
