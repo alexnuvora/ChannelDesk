@@ -60,7 +60,9 @@ export async function createYouTubePublication(input:{title:string;description?:
  const mediaUrl=assertPublicMediaUrl(input.mediaUrl);
  const scheduled=input.scheduledFor ? new Date(input.scheduledFor) : null;
  if(scheduled && (!Number.isFinite(scheduled.getTime())||scheduled.getTime()<=Date.now())) throw new Error("scheduledFor must be a future ISO-8601 date.");
- const {data:pub,error:pe}=await db.from("publications").insert({workspace_id:workspaceId,author_id:connection.id,text:input.description??"",state:scheduled?"scheduled":"publishing",scheduled_for:scheduled?.toISOString()??null}).select("id").single();
+ const {data:members,error:me}=await db.from("workspace_members").select("user_id,role").eq("workspace_id",workspaceId).order("role").limit(1);
+ if(me) throw me; const actor=members?.[0]?.user_id; if(!actor) throw new Error("Workspace has no member to attribute this publication to.");
+ const {data:pub,error:pe}=await db.from("publications").insert({workspace_id:workspaceId,author_id:actor,text:input.description??"",state:scheduled?"scheduled":"publishing",scheduled_for:scheduled?.toISOString()??null}).select("id").single();
  if(pe) throw pe;
  const idem=`youtube:${pub.id}`;
  const payload={title:input.title,description:input.description??"",mediaUrl,tags:input.tags??[],madeForKids:input.madeForKids??false,privacy:input.privacy??"public",scheduledFor:scheduled?.toISOString()??null};
