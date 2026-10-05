@@ -74,7 +74,18 @@ async function changeSchedule(id:string,workspaceId:string,actorId:string,date:s
  // Persist before calling YouTube. A crash leaves needs_review, preventing blind
  // concurrent reschedule/cancel attempts. The status-sync tool can reconcile it.
  const {error:claimError,data:claim}=await db.from('publications').update({state:'needs_review',updated_at:new Date().toISOString()}).eq('id',id).eq('workspace_id',workspaceId).eq('state','scheduled').eq('updated_at',pub.updated_at).select('id,updated_at').maybeSingle();if(claimError||!claim)throw new Error('Another request changed this publication. Refresh its status.');
- try{assertMutableSchedule('scheduled',status);const r=await fetch('https://www.googleapis.com/youtube/v3/videos?part=status',{method:'PUT',headers:{Authorization:`Bearer ${access}`,'Content-Type':'application/json'},body:JSON.stringify({id:target.external_post_id,status:{...writableStatus(status),...(date?{publishAt:new Date(date).toISOString()}:{})}}),signal:AbortSignal.timeout(30000),redirect:'error'});if(!r.ok)throw new Error(`YouTube schedule update failed (HTTP ${r.status}).`);const state=date?'scheduled':'cancelled';const {error}=await db.rpc('update_youtube_delivery',{p_publication_id:id,p_target_id:target.id,p_actor_id:actorId,p_state:state,p_scheduled_for:date,p_error:null,p_action:date?'youtube.rescheduled':'youtube.schedule_cancelled',p_expected_updated_at:claim.updated_at});if(error)throw error;return {publicationId:id,videoId:target.external_post_id,state,scheduledFor:date,youtubePrivacy:'private'};}catch(e){logFailure('youtube.schedule_update_failed',e);throw new Error('The schedule change was not confirmed. Sync this video’s status before trying again.');}
+ try{
+  assertMutableSchedule('scheduled',status);
+  const nextStatus={...writableStatus(status),...(date?{publishAt:new Date(date).toISOString()}:{})};
+  const r=await fetch('https://www.googleapis.com/youtube/v3/videos?part=status',{method:'PUT',headers:{Authorization:`Bearer ${access}`,'Content-Type':'application/json'},body:JSON.stringify({id:target.external_post_id,status:nextStatus}),signal:AbortSignal.timeout(30000),redirect:'error'});
+  if(!r.ok){const detail=await r.json().catch(()=>null);const reason=detail?.error?.errors?.[0]?.reason||detail?.error?.message;throw new Error(`YouTube schedule update failed (HTTP ${r.status})${reason?`: ${reason}`:''}.`);}
+  const state=date?'scheduled':'cancelled';
+  const scheduledFor=date?new Date(date).toISOString():null;
+  const now=new Date().toISOString();
+  const {error:targetError}=await db.from('publication_targets').update({state,error_code:null,error_message:null,updated_at:now}).eq('id',target.id);if(targetError)throw targetError;
+  const {error:pubError}=await db.from('publications').update({state,scheduled_for:scheduledFor,updated_at:now}).eq('id',id).eq('workspace_id',workspaceId).eq('state','needs_review');if(pubError)throw pubError;
+  return {publicationId:id,videoId:target.external_post_id,state,scheduledFor,youtubePrivacy:'private'};
+ }catch(e){logFailure('youtube.schedule_update_failed',e);const message=e instanceof Error?e.message:'The schedule change was not confirmed.';throw new Error(`${message} Sync this video’s status before trying again.`);}
 }
 export const rescheduleYouTubePublication=(id:string,scheduledFor:string,workspaceId:string,actorId:string)=>changeSchedule(id,workspaceId,actorId,scheduledFor);
 export const cancelYouTubeSchedule=(id:string,workspaceId:string,actorId:string)=>changeSchedule(id,workspaceId,actorId,null);
