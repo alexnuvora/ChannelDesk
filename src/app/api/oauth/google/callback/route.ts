@@ -31,7 +31,15 @@ export async function GET(request:NextRequest){
   let externalId="google"; let displayName="Google account";
   if(parsed.network==="youtube"){
     const channelRes=await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",{headers:{authorization:`Bearer ${tokens.access_token}`}});
-    if(!channelRes.ok) throw new Error("youtube_channel_lookup_failed");
+    if(!channelRes.ok) {
+      const googleError=await channelRes.json().catch(()=>null) as {error?:{code?:number;message?:string;errors?:Array<{reason?:string}>}} | null;
+      const reason=googleError?.error?.errors?.[0]?.reason;
+      if(reason==="accessNotConfigured") throw new Error("youtube_api_not_enabled");
+      if(reason==="insufficientPermissions") throw new Error("youtube_scope_missing");
+      if(googleError?.error?.code===401) throw new Error("youtube_authorization_failed");
+      console.error("YouTube channels.list failed",{status:channelRes.status,reason,message:googleError?.error?.message});
+      throw new Error("youtube_channel_lookup_failed");
+    }
     const channels=await channelRes.json() as {items?:Array<{id:string;snippet?:{title?:string}}>};
     const channel=channels.items?.[0]; if(!channel) throw new Error("youtube_channel_missing");
     externalId=channel.id; displayName=channel.snippet?.title ?? "YouTube channel";
