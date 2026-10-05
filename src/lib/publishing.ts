@@ -23,10 +23,9 @@ function encrypt(value:string){
  const data=Buffer.concat([c.update(value,"utf8"),c.final()]);
  return [iv.toString("base64"),c.getAuthTag().toString("base64"),data.toString("base64")].join(".");
 }
-export function mcpWorkspaceId(){
- const id=process.env.CHANNELDESK_MCP_WORKSPACE_ID;
- if(!id) throw new Error("CHANNELDESK_MCP_WORKSPACE_ID is not configured.");
- return id;
+function requireWorkspaceId(workspaceId?:string){
+ if(!workspaceId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceId)) throw new Error("A valid ChannelDesk workspaceId is required.");
+ return workspaceId;
 }
 async function youtubeAccessToken(connection:any){
  if(connection.token_expires_at && new Date(connection.token_expires_at).getTime()>Date.now()+60_000) return decrypt(connection.token_ciphertext);
@@ -45,15 +44,15 @@ function assertPublicMediaUrl(raw:string){
  if(h==="localhost"||h.endsWith(".local")||h==="127.0.0.1"||h==="::1"||/^10\./.test(h)||/^192\.168\./.test(h)||/^169\.254\./.test(h)||/^172\.(1[6-9]|2\d|3[01])\./.test(h)) throw new Error("Private-network media URLs are not allowed.");
  return u.toString();
 }
-export async function listSocialAccounts(workspaceId=mcpWorkspaceId()){
+export async function listSocialAccounts(workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const {data,error}=await admin().from("social_connections").select("id,network,external_account_id,display_name,active,token_expires_at").eq("workspace_id",workspaceId).eq("active",true);
  if(error) throw error; return data??[];
 }
-export async function getCalendar(from:string,to:string,workspaceId=mcpWorkspaceId()){
+export async function getCalendar(from:string,to:string,workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const {data,error}=await admin().from("publications").select("id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,social_connections(network,display_name))").eq("workspace_id",workspaceId).gte("scheduled_for",from).lte("scheduled_for",to).order("scheduled_for");
  if(error) throw error; return data??[];
 }
-export async function createYouTubePublication(input:{title:string;description?:string;mediaUrl:string;scheduledFor?:string;privacy?: "private"|"unlisted"|"public";madeForKids?:boolean;tags?:string[];requestId?:string},workspaceId=mcpWorkspaceId()){
+export async function createYouTubePublication(input:{title:string;description?:string;mediaUrl:string;scheduledFor?:string;privacy?: "private"|"unlisted"|"public";madeForKids?:boolean;tags?:string[];requestId?:string},workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const db=admin();
  const idem=`youtube:${workspaceId}:${input.requestId??randomUUID()}`;
  const {data:existing}=await db.from("publication_targets").select("publication_id,external_post_id,external_url,state").eq("idempotency_key",idem).maybeSingle();
@@ -99,12 +98,12 @@ async function uploadYouTube(connection:any,payload:any){
  if(!upload.ok) throw new Error(`YouTube upload failed (HTTP ${upload.status}): ${await upload.text()}`);
  return await upload.json() as {id:string;status?:{uploadStatus?:string;privacyStatus?:string;publishAt?:string}};
 }
-export async function getPublicationStatus(id:string,workspaceId=mcpWorkspaceId()){
+export async function getPublicationStatus(id:string,workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const {data,error}=await admin().from("publications").select("id,text,state,scheduled_for,created_at,publication_targets(id,state,external_post_id,external_url,error_code,error_message,attempts)").eq("workspace_id",workspaceId).eq("id",id).single();
  if(error) throw error; return data;
 }
 
-export async function syncYouTubePublication(id:string,workspaceId=mcpWorkspaceId()){
+export async function syncYouTubePublication(id:string,workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const db=admin();
  const {data:pub,error}=await db.from("publications").select("id,state,publication_targets(id,connection_id,external_post_id,state)").eq("workspace_id",workspaceId).eq("id",id).single();
  if(error) throw error;
@@ -122,7 +121,7 @@ export async function syncYouTubePublication(id:string,workspaceId=mcpWorkspaceI
  await db.from("publications").update({state}).eq("id",id);
  return {publicationId:id,videoId:target.external_post_id,state,youtube:status,url:`https://www.youtube.com/watch?v=${target.external_post_id}`};
 }
-export async function rescheduleYouTubePublication(id:string,scheduledFor:string,workspaceId=mcpWorkspaceId()){
+export async function rescheduleYouTubePublication(id:string,scheduledFor:string,workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const when=new Date(scheduledFor); if(!Number.isFinite(when.getTime())||when.getTime()<=Date.now()) throw new Error("scheduledFor must be a future ISO-8601 date.");
  const db=admin(); const {data:pub,error}=await db.from("publications").select("publication_targets(id,connection_id,external_post_id)").eq("workspace_id",workspaceId).eq("id",id).single(); if(error) throw error;
  const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
@@ -137,7 +136,7 @@ export async function rescheduleYouTubePublication(id:string,scheduledFor:string
  await db.from("publication_targets").update({state:"scheduled"}).eq("id",target.id); await db.from("publications").update({state:"scheduled",scheduled_for:when.toISOString()}).eq("id",id);
  return {publicationId:id,videoId:target.external_post_id,state:"scheduled",scheduledFor:when.toISOString()};
 }
-export async function cancelYouTubeSchedule(id:string,workspaceId=mcpWorkspaceId()){
+export async function cancelYouTubeSchedule(id:string,workspaceId?:string){ workspaceId=requireWorkspaceId(workspaceId);
  const db=admin(); const {data:pub,error}=await db.from("publications").select("publication_targets(id,connection_id,external_post_id)").eq("workspace_id",workspaceId).eq("id",id).single(); if(error) throw error;
  const target=(pub.publication_targets as any[])?.find(t=>t.external_post_id); if(!target) throw new Error("Publication has no YouTube video.");
  const {data:conn,error:ce}=await db.from("social_connections").select("*").eq("id",target.connection_id).eq("workspace_id",workspaceId).single(); if(ce) throw ce;
