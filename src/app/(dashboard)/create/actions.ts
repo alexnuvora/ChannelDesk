@@ -4,6 +4,14 @@ import {createClient} from '@/lib/supabase/server';
 import {createYouTubePublication,publishTikTok,uploadTikTokDraft} from '@/lib/publishing';
 import {logFailure} from '@/lib/config';
 import {ZodError} from 'zod';
+export async function saveDraft(formData:FormData){
+ const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect('/login');const connectionId=String(formData.get('connectionId')||''),mediaAssetId=String(formData.get('mediaAssetId')||''),network=String(formData.get('network')||'');let url='';
+ try{if(!['youtube','tiktok'].includes(network))throw new Error('Choose a supported channel.');const {data:connection}=await s.from('social_connections').select('workspace_id,network').eq('id',connectionId).eq('network',network).eq('active',true).maybeSingle();if(!connection)throw new Error('Choose an active channel.');const {data:asset}=await s.from('media_assets').select('id,mime_type').eq('id',mediaAssetId).eq('workspace_id',connection.workspace_id).maybeSingle();if(!asset?.mime_type?.startsWith('video/'))throw new Error('Choose a video from this workspace.');
+  const payload=network==='youtube'?{title:String(formData.get('title')||''),description:String(formData.get('description')||''),privacy:String(formData.get('privacy')||'private'),madeForKids:String(formData.get('madeForKids')||'')==='yes',scheduledFor:String(formData.get('scheduledFor')||'')||null}:{caption:String(formData.get('caption')||''),mode:String(formData.get('mode')||'draft'),privacy:String(formData.get('privacy')||'SELF_ONLY')};
+  const text=network==='youtube'?String(formData.get('title')||''):String(formData.get('caption')||'');const {data:id,error}=await s.rpc('create_publication_draft',{p_connection_id:connectionId,p_media_id:mediaAssetId,p_text:text,p_payload:payload});if(error)throw error;url='/planner?message='+encodeURIComponent('Draft saved and ready for review. Publication '+id);
+ }catch(e){url='/create?error='+encodeURIComponent(e instanceof Error?e.message:'Draft could not be saved.');}redirect(url);
+}
+
 export async function submitYouTube(formData:FormData){
  const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect('/login');
  const connectionId=String(formData.get('connectionId')||'');const {data:connection}=await supabase.from('social_connections').select('workspace_id').eq('id',connectionId).eq('network','youtube').eq('active',true).maybeSingle();if(!connection)redirect('/create?error='+encodeURIComponent('Choose an active YouTube channel.'));
