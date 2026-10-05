@@ -17,6 +17,9 @@ export async function updateSession(request: NextRequest) {
       },
     },
   );
-  await supabase.auth.getClaims();
+  try { await supabase.auth.getClaims(); } catch {
+    // Protected routes independently verify identity. Never crash public discovery.
+    console.error(JSON.stringify({event:"auth.session.refresh_failed"}));
+  }
   return response;
 }

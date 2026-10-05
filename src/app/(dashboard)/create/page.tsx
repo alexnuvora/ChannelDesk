@@ -1,0 +1,4 @@
+import {randomUUID} from 'node:crypto';
+import {createClient} from '@/lib/supabase/server';
+import {YouTubeForm} from './youtube-form';
+export default async function Create({searchParams}:{searchParams:Promise<{error?:string;success?:string}>}){const params=await searchParams,supabase=await createClient();const {data:accounts,error}=await supabase.from('social_connections').select('id,display_name,workspace_id').eq('network','youtube').eq('active',true);return <><p className="eyebrow">CREATE</p><h1>Create content</h1>{params.error&&<p className="notice error" role="alert">{params.error}</p>}{params.success&&<p className="notice" role="status">{params.success}</p>}<div className="panel"><h2>YouTube</h2>{error?<p className="notice error">Channel accounts could not be loaded. Check the database setup.</p>:accounts?.length?<YouTubeForm accounts={accounts} requestId={randomUUID()}/>:<p className="muted">Connect YouTube before publishing.</p>}</div></>;}

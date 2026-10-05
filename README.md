@@ -1,27 +1,19 @@
 # ChannelDesk
 
-ChannelDesk is a multi-network social media management platform built for teams and AI agents.
+Next.js, Supabase and MCP social publishing app. The current release connects and publishes to YouTube, including YouTube-native future scheduling. Other social adapters, media uploads and analytics are planned; this is not full Metricool parity.
 
-## Product scope
+## Development
 
-- Multi-brand workspaces and role-based access
-- OAuth social account connections
-- Composer with network-specific validation
-- Drafts, approvals, scheduling and publishing
-- Calendar and queue
-- Media library and video/Shorts workflow
-- Analytics, best-time recommendations and reporting
-- Publishing retries, idempotency and audit trail
-- ChatGPT/MCP tools for controlled social operations
+Use Node 22 or newer. Run `npm ci`, copy `.env.example` to `.env.local`, and fill the environment variables from the ChannelDesk Supabase project. Run `npm run dev`.
 
-## Target networks
+Checks: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. Tests use an isolated PostgreSQL engine and mocks; they do not contact social accounts or publish anything.
 
-YouTube, TikTok, Instagram, Facebook, LinkedIn, X, Threads, Bluesky, Pinterest and Google Business Profile.
+## ChatGPT connection
 
-## Stack
+Connect the remote MCP endpoint `https://channel-desk-61xl.vercel.app/mcp` from ChatGPT. Sign in to ChannelDesk and approve the requested permissions. The server exposes standards-based OAuth discovery, PKCE and rotating refresh tokens. Use `list_workspaces` followed by `list_social_accounts` to choose the exact destination. Publication tools require publishing scope and an owner/admin/editor workspace role.
 
-Next.js App Router, TypeScript, PostgreSQL/Supabase, background workers, object storage/media processing and Vercel.
+## Deployment
 
-## Status
+Pushes to main run CI and the existing Supabase CLI migration workflow for `zmwfyrqbgtvtuajbjnzm`. Vercel requires its own server-only `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY`; the GitHub CLI token does not supply that variable. Keep production and preview secrets separate. See [the audit and setup checklist](docs/AUDIT-2026-10-05.md).
 
-Foundation created. Platform adapters and production credentials are intentionally configured through environment variables; secrets are never committed.
+No secrets should be committed. Keep `TOKEN_ENCRYPTION_KEY` stable unless you also migrate encrypted connection tokens.

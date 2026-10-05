@@ -1,56 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createCipheriv, randomBytes } from "crypto";
-
-function encrypt(value:string){
- const key=Buffer.from(process.env.TOKEN_ENCRYPTION_KEY ?? "","base64");
- if(key.length!==32) throw new Error("TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key");
- const iv=randomBytes(12); const cipher=createCipheriv("aes-256-gcm",key,iv);
- const encrypted=Buffer.concat([cipher.update(value,"utf8"),cipher.final()]);
- return [iv.toString("base64"),cipher.getAuthTag().toString("base64"),encrypted.toString("base64")].join(".");
-}
-
+import {NextRequest,NextResponse} from 'next/server';
+import {createClient} from '@/lib/supabase/server';
+import {admin,assertWorkspaceAccess} from '@/lib/mcp-oauth';
+import {appOrigin,logFailure} from '@/lib/config';
+import {encrypt} from '@/lib/publishing';
 export async function GET(request:NextRequest){
- const base=new URL("/connections",request.nextUrl.origin);
+ const base=new URL('/connections',appOrigin());
  try{
-  const code=request.nextUrl.searchParams.get("code"); const state=request.nextUrl.searchParams.get("state");
-  const saved=request.cookies.get("cd_google_oauth")?.value;
-  if(!code||!state||!saved) throw new Error("oauth_state_missing");
-  const parsed=JSON.parse(saved) as {state:string;network:"youtube"|"google_business"};
-  if(parsed.state!==state) throw new Error("oauth_state_invalid");
-  const supabase=await createClient(); const {data:claims}=await supabase.auth.getClaims();
-  if(!claims?.claims?.sub) return NextResponse.redirect(new URL("/login",request.url));
-  const {data:members}=await supabase.from("workspace_members").select("workspace_id,role").limit(1);
-  const member=members?.[0]; if(!member) throw new Error("workspace_required");
-  const clientId=process.env.GOOGLE_OAUTH_CLIENT_ID; const clientSecret=process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  if(!clientId||!clientSecret) throw new Error("google_not_configured");
-  const redirectUri=new URL("/api/oauth/google/callback",request.nextUrl.origin).toString();
-  const tokenRes=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,grant_type:"authorization_code"})});
-  if(!tokenRes.ok) throw new Error("google_token_exchange_failed");
-  const tokens=await tokenRes.json() as {access_token:string;refresh_token?:string;expires_in?:number;scope?:string};
-  let externalId="google"; let displayName="Google account";
-  if(parsed.network==="youtube"){
-    const channelRes=await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",{headers:{authorization:`Bearer ${tokens.access_token}`}});
-    if(!channelRes.ok) {
-      const googleError=await channelRes.json().catch(()=>null) as {error?:{code?:number;message?:string;errors?:Array<{reason?:string}>}} | null;
-      const reason=googleError?.error?.errors?.[0]?.reason;
-      if(reason==="accessNotConfigured") throw new Error("youtube_api_not_enabled");
-      if(reason==="insufficientPermissions") throw new Error("youtube_scope_missing");
-      if(googleError?.error?.code===401) throw new Error("youtube_authorization_failed");
-      console.error("YouTube channels.list failed",{status:channelRes.status,reason,message:googleError?.error?.message});
-      throw new Error("youtube_channel_lookup_failed");
-    }
-    const channels=await channelRes.json() as {items?:Array<{id:string;snippet?:{title?:string}}>};
-    const channel=channels.items?.[0]; if(!channel) throw new Error("youtube_channel_missing");
-    externalId=channel.id; displayName=channel.snippet?.title ?? "YouTube channel";
-  } else {
-    const infoRes=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{authorization:`Bearer ${tokens.access_token}`}});
-    if(infoRes.ok){const info=await infoRes.json() as {sub?:string;name?:string;email?:string};externalId=info.sub ?? "google";displayName=info.name ?? info.email ?? "Google Business account";}
-  }
-  const expires=tokens.expires_in ? new Date(Date.now()+tokens.expires_in*1000).toISOString() : null;
-  const {error}=await supabase.from("social_connections").upsert({workspace_id:member.workspace_id,network:parsed.network,external_account_id:externalId,display_name:displayName,token_ciphertext:encrypt(tokens.access_token),refresh_token_ciphertext:tokens.refresh_token?encrypt(tokens.refresh_token):null,scopes:(tokens.scope??"").split(" ").filter(Boolean),token_expires_at:expires,active:true},{onConflict:"workspace_id,network,external_account_id"});
-  if(error) throw error;
-  base.searchParams.set("connected",parsed.network);
- }catch(error){base.searchParams.set("error",error instanceof Error?error.message:"oauth_failed");}
- const response=NextResponse.redirect(base); response.cookies.delete("cd_google_oauth"); return response;
+  const code=request.nextUrl.searchParams.get('code'),state=request.nextUrl.searchParams.get('state'),saved=request.cookies.get('cd_google_oauth')?.value;if(!code||!state||!saved)throw new Error('oauth_state_missing');
+  const parsed=JSON.parse(saved);if(parsed.state!==state||parsed.network!=='youtube'||parsed.redirectUri!==appOrigin()+'/api/oauth/google/callback')throw new Error('oauth_state_invalid');
+  const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user||user.id!==parsed.userId)throw new Error('oauth_state_invalid');await assertWorkspaceAccess(user.id,parsed.workspaceId,true);
+  const clientId=process.env.GOOGLE_OAUTH_CLIENT_ID,clientSecret=process.env.GOOGLE_OAUTH_CLIENT_SECRET;if(!clientId||!clientSecret)throw new Error('google_not_configured');
+  const tokenRes=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:parsed.redirectUri,grant_type:'authorization_code',code_verifier:parsed.verifier}),signal:AbortSignal.timeout(20000),redirect:'error'});if(!tokenRes.ok)throw new Error('google_token_exchange_failed');const tokens=await tokenRes.json();if(!tokens.access_token)throw new Error('google_token_exchange_failed');
+  const channelsRes=await fetch('https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',{headers:{Authorization:`Bearer ${tokens.access_token}`},signal:AbortSignal.timeout(20000),redirect:'error'});if(!channelsRes.ok){const e=await channelsRes.json().catch(()=>({}));const reason=e.error?.errors?.[0]?.reason;throw new Error(reason==='accessNotConfigured'?'youtube_api_not_enabled':reason==='insufficientPermissions'?'youtube_scope_missing':'youtube_channel_lookup_failed');}
+  const channels=await channelsRes.json();if(channels.items?.length!==1)throw new Error(channels.items?.length?'Choose one YouTube channel during Google authorisation.':'youtube_channel_missing');const channel=channels.items[0];
+  const db=admin();const {data:old,error:oldError}=await db.from('social_connections').select('id,refresh_token_ciphertext').eq('workspace_id',parsed.workspaceId).eq('network','youtube').eq('external_account_id',channel.id).maybeSingle();if(oldError)throw oldError;
+  const {error}=await db.from('social_connections').upsert({workspace_id:parsed.workspaceId,network:'youtube',external_account_id:channel.id,display_name:channel.snippet?.title||'YouTube channel',token_ciphertext:encrypt(tokens.access_token),refresh_token_ciphertext:tokens.refresh_token?encrypt(tokens.refresh_token):old?.refresh_token_ciphertext||null,scopes:String(tokens.scope||'').split(' ').filter(Boolean),token_expires_at:tokens.expires_in?new Date(Date.now()+tokens.expires_in*1000).toISOString():null,active:true},{onConflict:'workspace_id,network,external_account_id'});if(error)throw error;
+  const {error:auditError}=await db.from('audit_events').insert({workspace_id:parsed.workspaceId,actor_id:user.id,action:'youtube.connected',entity_type:'social_connection',entity_id:channel.id,metadata:{displayName:channel.snippet?.title}});if(auditError)logFailure('google.oauth.audit_failed',auditError);base.searchParams.set('connected','youtube');
+ }catch(e){logFailure('google.oauth.callback_failed',e);base.searchParams.set('error',e instanceof Error?e.message:'oauth_failed');}
+ const response=NextResponse.redirect(base,303);response.cookies.set('cd_google_oauth','',{maxAge:0,path:'/api/oauth/google',httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax'});return response;
 }

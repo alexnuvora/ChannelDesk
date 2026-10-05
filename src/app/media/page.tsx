@@ -1,1 +1,0 @@
-export default function Media(){return <><p className="eyebrow">MEDIA</p><h1>Media library</h1><div className="panel empty"><b>Your library is empty</b><span>Uploaded and generated images and videos will live here with source and rights provenance.</span></div></>}

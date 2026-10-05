@@ -1,7 +1,7 @@
-export const NETWORKS = ["youtube","tiktok","instagram","facebook","linkedin","x","threads","bluesky","pinterest","google_business"] as const;
+export const NETWORKS = ["youtube","tiktok","instagram","facebook","linkedin","x","threads","bluesky","pinterest","google_business","twitch"] as const;
 export type Network = (typeof NETWORKS)[number];
 
-export type PublishState = "draft"|"pending_approval"|"scheduled"|"publishing"|"published"|"failed"|"cancelled";
+export type PublishState = "draft"|"pending_approval"|"scheduled"|"publishing"|"published"|"failed"|"cancelled"|"needs_review";
 
 export interface SocialConnection {
  id:string; workspaceId:string; network:Network; externalAccountId:string; displayName:string; tokenCiphertext:string; tokenExpiresAt?:string; scopes:string[]; active:boolean;

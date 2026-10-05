@@ -1,4 +1,4 @@
-import { MCP_SCOPES, issuer } from "@/lib/mcp-oauth";
+import { MCP_SCOPES, issuer } from "@/lib/oauth-validation";
 export const dynamic="force-dynamic";
 export async function GET(){
  const base=issuer();

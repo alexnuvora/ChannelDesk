@@ -1,0 +1,1 @@
+export default function Analytics(){return <><p className="eyebrow">ANALYTICS</p><h1>Performance</h1><div className="panel empty"><b>No analytics yet</b><span>Channel analytics are not implemented in this release. View performance in the channel’s own dashboard.</span></div></>}

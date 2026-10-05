@@ -1,0 +1,1 @@
+export default function Media(){return <><p className="eyebrow">MEDIA</p><h1>Media library</h1><div className="panel empty"><b>Your library is empty</b><span>Media uploads are not enabled in this release. YouTube publishing currently accepts a public HTTPS video URL.</span></div></>}

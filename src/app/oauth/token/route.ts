@@ -1,23 +1,28 @@
-import { admin, base64urlSha256, hashSecret, issueToken, mcpResource } from "@/lib/mcp-oauth";
-function json(body:unknown,status=200){return Response.json(body,{status,headers:{"cache-control":"no-store","pragma":"no-cache","access-control-allow-origin":"*"}});}
+import {admin,base64urlSha256,hashSecret,mcpResource,randomSecret,validClientId,validRedirect,validVerifier,normalizeScope} from '@/lib/mcp-oauth';
+import {ConfigurationError,logFailure} from '@/lib/config';
+export const runtime='nodejs';
+function json(body:unknown,status=200){return Response.json(body,{status,headers:{'Cache-Control':'no-store','Pragma':'no-cache','Access-Control-Allow-Origin':'*'}});}
 export async function POST(request:Request){
- const body=new URLSearchParams(await request.text()), grant=body.get("grant_type");
- if(grant==="authorization_code"){
-  const code=body.get("code")??"", verifier=body.get("code_verifier")??"", clientId=body.get("client_id")??"", redirect=body.get("redirect_uri")??"", resource=body.get("resource")??"";
-  const db=admin(); const {data,error}=await db.from("mcp_oauth_codes").select("*").eq("code_hash",hashSecret(code)).maybeSingle();
-  if(error||!data||new Date(data.expires_at).getTime()<=Date.now()) return json({error:"invalid_grant"},400);
-  if(data.client_id!==clientId||data.redirect_uri!==redirect||data.resource!==resource||resource!==mcpResource()||base64urlSha256(verifier)!==data.code_challenge) return json({error:"invalid_grant"},400);
-  await db.from("mcp_oauth_codes").delete().eq("code_hash",hashSecret(code));
-  const access=await issueToken(data.user_id,clientId,resource,data.scope,"access",3600); const refresh=await issueToken(data.user_id,clientId,resource,data.scope,"refresh",30*24*3600);
-  return json({access_token:access.token,token_type:"Bearer",expires_in:3600,refresh_token:refresh.token,scope:data.scope});
- }
- if(grant==="refresh_token"){
-  const raw=body.get("refresh_token")??"", resource=body.get("resource")??mcpResource(), clientId=body.get("client_id")??""; const db=admin();
-  const {data,error}=await db.from("mcp_oauth_tokens").select("*").eq("token_hash",hashSecret(raw)).eq("token_type","refresh").maybeSingle();
-  if(error||!data||data.revoked_at||new Date(data.expires_at).getTime()<=Date.now()||data.client_id!==clientId||data.resource!==resource||resource!==mcpResource()) return json({error:"invalid_grant"},400);
-  await db.from("mcp_oauth_tokens").update({revoked_at:new Date().toISOString()}).eq("token_hash",hashSecret(raw));
-  const access=await issueToken(data.user_id,clientId,resource,data.scope,"access",3600); const refresh=await issueToken(data.user_id,clientId,resource,data.scope,"refresh",30*24*3600);
-  return json({access_token:access.token,token_type:"Bearer",expires_in:3600,refresh_token:refresh.token,scope:data.scope});
- }
- return json({error:"unsupported_grant_type"},400);
+ try{
+  if(!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded'))return json({error:'invalid_request',error_description:'Use application/x-www-form-urlencoded.'},400);
+  const raw=await request.text();if(raw.length>12000)return json({error:'invalid_request'},413);
+  const body=new URLSearchParams(raw);for(const key of body.keys())if(body.getAll(key).length!==1)return json({error:'invalid_request'},400);
+  const grant=body.get('grant_type'),clientId=body.get('client_id')||'',resource=body.get('resource')||'';
+  if(!validClientId(clientId))return json({error:'invalid_client'},400);
+  if(resource!==mcpResource())return json({error:'invalid_target'},400);
+  const access=randomSecret(),refresh=randomSecret();const tokens={p_access_hash:hashSecret(access),p_refresh_hash:hashSecret(refresh)};let data,error;
+  if(grant==='authorization_code'){
+   const code=body.get('code')||'',verifier=body.get('code_verifier')||'',redirect=body.get('redirect_uri')||'';
+   if(!/^[A-Za-z0-9_-]{43}$/.test(code)||!validVerifier(verifier)||!validRedirect(redirect))return json({error:'invalid_grant'},400);
+   ({data,error}=await admin().rpc('exchange_mcp_oauth_code',{p_code_hash:hashSecret(code),p_client_id:clientId,p_redirect_uri:redirect,p_resource:resource,p_code_challenge:base64urlSha256(verifier),...tokens}));
+  }else if(grant==='refresh_token'){
+   const token=body.get('refresh_token')||'';if(!/^[A-Za-z0-9_-]{43}$/.test(token))return json({error:'invalid_grant'},400);
+   let scope:string|null=null;if(body.has('scope')){try{scope=normalizeScope(body.get('scope'));}catch{return json({error:'invalid_scope'},400);}}
+   ({data,error}=await admin().rpc('rotate_mcp_oauth_token',{p_token_hash:hashSecret(token),p_client_id:clientId,p_resource:resource,p_scope:scope,...tokens}));
+  }else return json({error:'unsupported_grant_type'},400);
+  if(error){if(error.code==='22023')return json({error:'invalid_grant'},400);throw error;}
+  if(typeof data!=='string')throw new Error('Invalid token exchange response.');
+  return json({access_token:access,token_type:'Bearer',expires_in:3600,refresh_token:refresh,scope:data});
+ }catch(e){logFailure('oauth.token.failed',e);return json({error:e instanceof ConfigurationError?'temporarily_unavailable':'server_error',error_description:'ChannelDesk could not complete token exchange. The app owner should check server configuration and database migrations.'},503);}
 }
+export async function OPTIONS(){return new Response(null,{status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'}});}

@@ -1,25 +1,38 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { hashSecret, issuer, mcpResource, normalizeScope, randomSecret, validClientId, validRedirect } from "@/lib/mcp-oauth";
-
-function oauthError(redirect:string,state:string|null,error:string,description:string){
- const u=new URL(redirect); u.searchParams.set("error",error); u.searchParams.set("error_description",description); if(state) u.searchParams.set("state",state); u.searchParams.set("iss",issuer()); return NextResponse.redirect(u);
+import {NextRequest,NextResponse} from 'next/server';
+import {createClient} from '@/lib/supabase/server';
+import {admin,hashSecret,issuer,randomSecret,validateAuthorization,verifyClientMetadata,OAuthRequestError} from '@/lib/mcp-oauth';
+import {appOrigin,ConfigurationError,logFailure,requireServerDatabaseConfig} from '@/lib/config';
+import {CONSENT_COOKIE,consentProof,consentMatches,escapeHtml} from '@/lib/oauth-consent';
+export const dynamic='force-dynamic';
+export const runtime='nodejs';
+const headers={'Cache-Control':'no-store','Pragma':'no-cache','Content-Type':'text/html; charset=utf-8','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"};
+function html(title:string,body:string,status=200){return new NextResponse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · ChannelDesk</title><link rel="stylesheet" href="/oauth.css"></head><body><main><div class="brand">CD · ChannelDesk</div><h1>${escapeHtml(title)}</h1>${body}</main></body></html>`,{status,headers});}
+function failure(e:unknown){logFailure('oauth.authorize.failed',e);if(e instanceof OAuthRequestError)return html('Connection request rejected',`<p>${escapeHtml(e.message)}</p><p>Return to ChatGPT and start the connection again.</p>`,400);return html('ChannelDesk connection needs attention',`<p>${e instanceof ConfigurationError?'The app owner needs to finish the server configuration before ChatGPT can connect.':'ChannelDesk could not complete this connection. Please try again shortly.'}</p><p>Your social accounts have not been changed.</p><a href="/settings">Open ChannelDesk settings</a>`,503);}
+function callback(q:ReturnType<typeof validateAuthorization>,values:Record<string,string>){const u=new URL(q.redirect);for(const [key,value]of Object.entries(values))u.searchParams.set(key,value);if(q.state)u.searchParams.set('state',q.state);u.searchParams.set('iss',issuer());const r=NextResponse.redirect(u,303);r.headers.set('Cache-Control','no-store');r.headers.set('Referrer-Policy','no-referrer');r.cookies.set(CONSENT_COOKIE,'',{maxAge:0,path:'/oauth/authorize',httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax'});return r;}
+export async function GET(request:NextRequest){
+ try{
+  const raw=new URL(request.url);const q=validateAuthorization(raw.searchParams);
+  if(raw.origin!==appOrigin())return NextResponse.redirect(new URL(raw.pathname+raw.search,appOrigin()),303);
+  const supabase=await createClient();const {data:{user},error}=await supabase.auth.getUser();
+  if(error||!user)return NextResponse.redirect(new URL('/login?next='+encodeURIComponent(raw.pathname+raw.search),appOrigin()),303);
+  requireServerDatabaseConfig();await verifyClientMetadata(q.clientId,q.redirect);
+  const nonce=randomSecret();const query=raw.searchParams.toString();const publish=q.scope.split(' ').includes('channeldesk.publish');
+  const response=html('Connect ChatGPT',`<p>Signed in as <strong>${escapeHtml(user.email||'your ChannelDesk account')}</strong>.</p><p>Allow ChatGPT to access your ChannelDesk workspaces?</p><ul>${q.scope.includes('channeldesk.read')?'<li>Read connected accounts, calendars and publication status.</li>':''}${publish?'<li>Publish and manage YouTube videos when you ask it to, within your workspace permissions.</li>':''}</ul><p>Your social account passwords and tokens are never sent to ChatGPT.</p><form method="post" action="/oauth/authorize"><input type="hidden" name="request" value="${escapeHtml(query)}"><input type="hidden" name="nonce" value="${nonce}"><button name="decision" value="allow">Allow access</button><button class="secondary" name="decision" value="deny">Cancel</button></form>`);
+  response.cookies.set(CONSENT_COOKIE,consentProof(query,nonce,user.id),{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/oauth/authorize',maxAge:600});return response;
+ }catch(e){return failure(e);}
 }
-export async function GET(request:Request){
- const u=new URL(request.url), q=u.searchParams;
- const clientId=q.get("client_id")??"", redirect=q.get("redirect_uri")??"", state=q.get("state"), resource=q.get("resource")??"", challenge=q.get("code_challenge")??"";
- if(!validClientId(clientId)||!validRedirect(redirect)) return new NextResponse("Invalid OAuth client or redirect URI.",{status:400});
- if(q.get("response_type")!=="code"||q.get("code_challenge_method")!=="S256"||!challenge) return oauthError(redirect,state,"invalid_request","Authorization Code with PKCE S256 is required.");
- if(resource!==mcpResource()) return oauthError(redirect,state,"invalid_target","The requested MCP resource is invalid.");
- const supabase=await createClient();
- let user;
- try { const result=await supabase.auth.getUser(); user=result.data.user; }
- catch { user=null; }
- if(!user){ const next=u.pathname+u.search; return NextResponse.redirect(new URL("/login?next="+encodeURIComponent(next),u.origin)); }
- const code=randomSecret(), scope=normalizeScope(q.get("scope"));
- try {
-  const {error}=await supabase.rpc("issue_mcp_oauth_code",{p_code_hash:hashSecret(code),p_client_id:clientId,p_redirect_uri:redirect,p_resource:resource,p_scope:scope,p_code_challenge:challenge,p_expires_at:new Date(Date.now()+5*60_000).toISOString()});
-  if(error) return oauthError(redirect,state,"server_error","Could not create authorization code.");
- } catch { return oauthError(redirect,state,"server_error","Could not create authorization code."); }
- const out=new URL(redirect); out.searchParams.set("code",code); if(state) out.searchParams.set("state",state); out.searchParams.set("iss",issuer()); return NextResponse.redirect(out);
+export async function POST(request:NextRequest){
+ try{
+  if(request.headers.get('origin')!==appOrigin()||request.headers.get('sec-fetch-site')==='cross-site')return html('Connection request rejected','<p>Start this connection again from ChatGPT.</p>',403);
+  const text=await request.text();if(text.length>12000)return html('Request too large','<p>Start again from ChatGPT.</p>',413);
+  const body=new URLSearchParams(text);const query=body.get('request')||'',nonce=body.get('nonce')||'';const q=validateAuthorization(new URLSearchParams(query));
+  const supabase=await createClient();const {data:{user},error}=await supabase.auth.getUser();if(error||!user)return html('Sign in again','<p>Your sign-in expired. Return to ChatGPT and reconnect.</p>',401);
+  if(!/^[A-Za-z0-9_-]{43}$/.test(nonce)||!consentMatches(consentProof(query,nonce,user.id),request.cookies.get(CONSENT_COOKIE)?.value||''))return html('Connection request expired','<p>Return to ChatGPT and start the connection again.</p>',403);
+  if(body.get('decision')==='deny')return callback(q,{error:'access_denied',error_description:'The user declined access.'});
+  if(body.get('decision')!=='allow')throw new OAuthRequestError('invalid_request','Choose whether to allow access.');
+  await verifyClientMetadata(q.clientId,q.redirect);
+  const code=randomSecret();const {error:insertError}=await admin().from('mcp_oauth_codes').insert({code_hash:hashSecret(code),user_id:user.id,client_id:q.clientId,redirect_uri:q.redirect,resource:q.resource,scope:q.scope,code_challenge:q.challenge,expires_at:new Date(Date.now()+300000).toISOString()});
+  if(insertError)throw insertError;
+  return callback(q,{code});
+ }catch(e){return failure(e);}
 }
