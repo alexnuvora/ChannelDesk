@@ -1,0 +1,1 @@
+export default function Settings(){return <><p className="eyebrow">SETTINGS</p><h1>Workspace settings</h1><div className="panel"><h2>ChannelDesk workspace</h2><p className="muted">Team access, approvals and workspace preferences will be managed here.</p></div></>}
