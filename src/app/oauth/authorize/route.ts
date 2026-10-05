@@ -11,10 +11,15 @@ export async function GET(request:Request){
  if(!validClientId(clientId)||!validRedirect(redirect)) return new NextResponse("Invalid OAuth client or redirect URI.",{status:400});
  if(q.get("response_type")!=="code"||q.get("code_challenge_method")!=="S256"||!challenge) return oauthError(redirect,state,"invalid_request","Authorization Code with PKCE S256 is required.");
  if(resource!==mcpResource()) return oauthError(redirect,state,"invalid_target","The requested MCP resource is invalid.");
- const supabase=await createClient(); const {data:{user}}=await supabase.auth.getUser();
+ const supabase=await createClient();
+ let user;
+ try { const result=await supabase.auth.getUser(); user=result.data.user; }
+ catch { user=null; }
  if(!user){ const next=u.pathname+u.search; return NextResponse.redirect(new URL("/login?next="+encodeURIComponent(next),u.origin)); }
  const code=randomSecret(), scope=normalizeScope(q.get("scope"));
- const {error}=await supabase.rpc("issue_mcp_oauth_code",{p_code_hash:hashSecret(code),p_client_id:clientId,p_redirect_uri:redirect,p_resource:resource,p_scope:scope,p_code_challenge:challenge,p_expires_at:new Date(Date.now()+5*60_000).toISOString()});
- if(error) return oauthError(redirect,state,"server_error","Could not create authorization code.");
+ try {
+  const {error}=await supabase.rpc("issue_mcp_oauth_code",{p_code_hash:hashSecret(code),p_client_id:clientId,p_redirect_uri:redirect,p_resource:resource,p_scope:scope,p_code_challenge:challenge,p_expires_at:new Date(Date.now()+5*60_000).toISOString()});
+  if(error) return oauthError(redirect,state,"server_error","Could not create authorization code.");
+ } catch { return oauthError(redirect,state,"server_error","Could not create authorization code."); }
  const out=new URL(redirect); out.searchParams.set("code",code); if(state) out.searchParams.set("state",state); out.searchParams.set("iss",issuer()); return NextResponse.redirect(out);
 }
