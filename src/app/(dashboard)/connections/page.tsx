@@ -2,6 +2,7 @@ import { NETWORKS, type Network } from "@/lib/networks";
 import { createClient } from "@/lib/supabase/server";
 import { GoogleConnectButton } from "./google-connect-button";
 import { TikTokConnectButton } from "./tiktok-connect-button";
+import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
   youtube:"YouTube", tiktok:"TikTok", instagram:"Instagram", facebook:"Facebook",
@@ -46,7 +47,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
     <div className="connection-grid">{NETWORKS.map(network=>{
       const account=connected.get(network);
       return <article className="panel connection" key={network}>
-        <b>{labels[network]}</b><span>{account ? account : "Not connected"}</span>
+        <div className="connection-title"><SocialIcon network={network}/><b>{labels[network]}</b></div><span>{account ? account : "Not connected"}</span>
         {network==="youtube" ? <GoogleConnectButton workspaces={workspaces} label={account?"Reconnect YouTube":"Connect with Google"} /> :
           network==="tiktok" ? <TikTokConnectButton workspaces={workspaces} label={account?"Reconnect TikTok":"Connect TikTok"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
