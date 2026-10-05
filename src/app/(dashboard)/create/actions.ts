@@ -9,8 +9,9 @@ export async function submitYouTube(formData:FormData){
  const connectionId=String(formData.get('connectionId')||'');const {data:connection}=await supabase.from('social_connections').select('workspace_id').eq('id',connectionId).eq('network','youtube').eq('active',true).maybeSingle();if(!connection)redirect('/create?error='+encodeURIComponent('Choose an active YouTube channel.'));
  let message='',errorMessage='';
  try{
+  const mediaAssetId=String(formData.get('mediaAssetId')||'');const {data:asset}=await supabase.from('media_assets').select('source_url,mime_type').eq('id',mediaAssetId).eq('workspace_id',connection.workspace_id).maybeSingle();if(!asset?.source_url||!asset.mime_type?.startsWith('video/'))throw new Error('Choose a video from your Media Library.');
   const kids=String(formData.get('madeForKids')||'');if(!['yes','no'].includes(kids))throw new Error('Select whether the video is made for kids.');const scheduled=String(formData.get('scheduledFor')||'');
-  const result=await createYouTubePublication({connectionId,title:String(formData.get('title')||''),description:String(formData.get('description')||''),mediaUrl:String(formData.get('mediaUrl')||''),privacy:String(formData.get('privacy')||'') as 'private'|'unlisted'|'public',madeForKids:kids==='yes',scheduledFor:scheduled||undefined,requestId:String(formData.get('requestId')||'')},connection.workspace_id,user.id);
+  const result=await createYouTubePublication({connectionId,title:String(formData.get('title')||''),description:String(formData.get('description')||''),mediaUrl:asset.source_url,privacy:String(formData.get('privacy')||'') as 'private'|'unlisted'|'public',madeForKids:kids==='yes',scheduledFor:scheduled||undefined,requestId:String(formData.get('requestId')||'')},connection.workspace_id,user.id);
   if(result.error||['failed','needs_review'].includes(result.state))errorMessage=`${result.error||'Check the existing publication before retrying.'} Publication: ${result.publicationId}`;
   else message=`Publication ${result.publicationId}: ${result.state}${result.videoId?' · Video '+result.videoId:''}`;
  }catch(e){logFailure('youtube.form.failed',e);errorMessage=e instanceof ZodError?e.issues.map(i=>i.message).join(' '):e instanceof Error?e.message:'Publishing could not be completed.';}
@@ -22,7 +23,8 @@ export async function submitTikTok(formData:FormData){
  const connectionId=String(formData.get('connectionId')||'');const {data:connection}=await supabase.from('social_connections').select('workspace_id').eq('id',connectionId).eq('network','tiktok').eq('active',true).maybeSingle();if(!connection)redirect('/create?error='+encodeURIComponent('Choose an active TikTok account.'));
  let message='',errorMessage='';
  try{
-  const mode=String(formData.get('mode')||'draft');const mediaUrl=String(formData.get('mediaUrl')||'');const requestId=String(formData.get('requestId')||'');
+  const mediaAssetId=String(formData.get('mediaAssetId')||'');const {data:asset}=await supabase.from('media_assets').select('source_url,mime_type').eq('id',mediaAssetId).eq('workspace_id',connection.workspace_id).maybeSingle();if(!asset?.source_url||!asset.mime_type?.startsWith('video/'))throw new Error('Choose a video from your Media Library.');
+  const mode=String(formData.get('mode')||'draft');const mediaUrl=asset.source_url;const requestId=String(formData.get('requestId')||'');
   if(mode==='draft'){const result=await uploadTikTokDraft({connectionId,mediaUrl,requestId},connection.workspace_id,user.id);message=`TikTok draft accepted · Publish ID ${result.publishId}`;}
   else if(mode==='direct'){const privacy=String(formData.get('privacy')||'SELF_ONLY') as 'PUBLIC_TO_EVERYONE'|'MUTUAL_FOLLOW_FRIENDS'|'FOLLOWER_OF_CREATOR'|'SELF_ONLY';const result=await publishTikTok({connectionId,mediaUrl,caption:String(formData.get('caption')||''),privacy,disableComment:true,disableDuet:true,disableStitch:true,requestId},connection.workspace_id,user.id);message=`TikTok Direct Post accepted · Publish ID ${result.publishId}`;}
   else throw new Error('Choose a valid TikTok publishing mode.');
