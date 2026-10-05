@@ -1,6 +1,8 @@
+.next/
 node_modules/
-.expo/
-dist/
 .env
-*.jks
-*.keystore
+.env.local
+.env.*.local
+.vercel/
+*.log
+.DS_Store
