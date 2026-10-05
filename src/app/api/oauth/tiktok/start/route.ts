@@ -3,7 +3,10 @@ import {createClient} from '@/lib/supabase/server';
 import {appOrigin,logFailure} from '@/lib/config';
 import {assertWorkspaceAccess,randomSecret} from '@/lib/mcp-oauth';
 
-const SCOPES=['user.info.basic','user.info.profile','user.info.stats','video.list','video.upload','video.publish'];
+// Keep the first TikTok review intentionally narrow: Login Kit identity,
+// draft upload, and Direct Post. Request additional read scopes only when
+// ChannelDesk ships UI that demonstrably needs them.
+const SCOPES=['user.info.basic','video.upload','video.publish'];
 
 export async function GET(request:NextRequest){
  try{
