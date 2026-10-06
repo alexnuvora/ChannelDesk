@@ -3,7 +3,9 @@
 project_id = "zmwfyrqbgtvtuajbjnzm"
 
 [functions.agnes-video]
-verify_jwt = true
+# The function validates the caller with auth.getUser(). Disabling gateway JWT verification
+# avoids rejecting valid newer Supabase publishable-key sessions before function code runs.
+verify_jwt = false
 
 [functions.job-worker]
 verify_jwt = false
