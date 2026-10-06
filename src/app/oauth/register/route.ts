@@ -19,7 +19,7 @@ export async function POST(request:Request){
   if(!body||typeof body!=='object'||Array.isArray(body))return registrationError('invalid_client_metadata','Registration metadata must be a JSON object.');
   if(body.software_statement!==undefined)return registrationError('invalid_software_statement','Software statements are not supported.');
 
-  const redirectUris=Array.isArray(body.redirect_uris)?[...new Set(body.redirect_uris.map((x:unknown)=>typeof x==='string'?x.trim():''))]:[];
+  const redirectUris:string[]=Array.isArray(body.redirect_uris)?[...new Set<string>(body.redirect_uris.map((x:unknown)=>typeof x==='string'?x.trim():'').filter((x:string)=>x.length>0))]:[];
   if(!redirectUris.length||redirectUris.length>10||redirectUris.some((x:string)=>!x||!validRedirect(x)))return registrationError('invalid_redirect_uri','Provide 1-10 secure redirect URIs. HTTPS and loopback HTTP redirects are supported.');
 
   const tokenMethod=body.token_endpoint_auth_method===undefined?'none':String(body.token_endpoint_auth_method);
