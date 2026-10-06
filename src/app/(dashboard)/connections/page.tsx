@@ -2,6 +2,7 @@ import { NETWORKS, type Network } from "@/lib/networks";
 import { createClient } from "@/lib/supabase/server";
 import { GoogleConnectButton } from "./google-connect-button";
 import { TikTokConnectButton } from "./tiktok-connect-button";
+import { MetaConnectButton } from "./meta-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -30,6 +31,10 @@ const errorMessages: Record<string,string> = {
   tiktok_token_exchange_failed:"TikTok authorization succeeded, but ChannelDesk could not exchange the authorization code.",
   tiktok_basic_scope_missing:"TikTok did not grant the basic profile permission.",
   tiktok_profile_lookup_failed:"ChannelDesk could not read the selected TikTok profile.",
+  meta_not_configured:"Meta OAuth is not configured on this deployment.",
+  meta_oauth_state_invalid:"The Meta connection session expired or could not be verified.",
+  meta_token_exchange_failed:"Meta authorization succeeded, but ChannelDesk could not exchange the authorization code.",
+  meta_accounts_failed:"ChannelDesk could not load the Facebook Pages available to this Meta account.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -50,6 +55,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
         <div className="connection-title"><SocialIcon network={network}/><b>{labels[network]}</b></div><span>{account ? account : "Not connected"}</span>
         {network==="youtube" ? <GoogleConnectButton workspaces={workspaces} label={account?"Reconnect YouTube":"Connect with Google"} /> :
           network==="tiktok" ? <TikTokConnectButton workspaces={workspaces} label={account?"Reconnect TikTok":"Connect TikTok"} /> :
+          (network==="facebook"||network==="instagram") ? <MetaConnectButton workspaces={workspaces} label={account?"Reconnect Meta":"Connect Meta"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
