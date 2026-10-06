@@ -32,7 +32,5 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm rebuild supabase
       - name: Invoke scheduler with a single-use ticket
         run: node scripts/invoke-scheduler.mjs
