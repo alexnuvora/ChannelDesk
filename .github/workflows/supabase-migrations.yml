@@ -6,6 +6,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/config.toml'
+      - 'supabase/functions/**'
       - 'scripts/verify-database.sql'
       - '.github/workflows/supabase-migrations.yml'
 permissions:
@@ -36,6 +37,8 @@ jobs:
         run: npx supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Push migrations
         run: npx supabase db push --yes
+      - name: Deploy Edge Functions
+        run: npx supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID" --use-api
       - name: Verify deployed schema and grants
         run: npx supabase db query --linked --file scripts/verify-database.sql
       - name: Run security advisors
