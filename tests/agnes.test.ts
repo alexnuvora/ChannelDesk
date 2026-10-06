@@ -5,3 +5,22 @@ test('AI video inputs are bounded before provider spend',()=>{const service=read
 test('Agnes provider validation details are preserved for actionable UI errors',()=>{const service=readFileSync('src/lib/agnes.ts','utf8');const actions=readFileSync('src/app/(dashboard)/create/ai-actions.ts','utf8');assert.match(service,/providerDetail/);assert.match(service,/Agnes request failed \(HTTP \$\{r\.status\}\)/);assert.match(actions,/Agnes rejected the request:/);assert.match(actions,/HTTP 403/);assert.match(actions,/HTTP 422/);});
 
 test('Agnes video request matches documented 2.5 fields',()=>{const service=readFileSync('src/lib/agnes.ts','utf8');assert.match(service,/model='agnes-video-2\.5'/);assert.match(service,/mode:'text'/);assert.match(service,/seconds:String\(seconds\)/);assert.match(service,/aspect_ratio:concept\.aspectRatio/);assert.doesNotMatch(service,/aspect_ratio:concept\.aspectRatio,n:1/);});
+
+test('Agnes retries transient throttling safely without duplicating ambiguous video creates',()=>{
+ const service=readFileSync('src/lib/agnes.ts','utf8');
+ assert.match(service,/retryAfterMs/);
+ assert.match(service,/backoffMs/);
+ assert.match(service,/maxAttempts=5/);
+ assert.match(service,/safeRetry=method==='GET'\|\|path==='\/v1\/chat\/completions'/);
+ assert.match(service,/videoCreate=method==='POST'&&path==='\/v1\/videos'/);
+ assert.match(service,/retryable429=r\.status===429&&\(safeRetry\|\|videoCreate\)/);
+ assert.match(service,/retryable5xx=r\.status>=500&&r\.status<=599&&safeRetry/);
+ assert.match(service,/hardQuota=status===429&&\/free users\|token plan\|upgrade\|quota\|credits\?\/i/);
+ assert.match(service,/failure_class:classification/);
+});
+
+test('ChannelDesk surfaces hard Agnes quota separately from transient 429 throttling',()=>{
+ const actions=readFileSync('src/app/(dashboard)/create/ai-actions.ts','utf8');
+ assert.match(actions,/free users\|token plan\|upgrade\|quota\|credits\?/);
+ assert.match(actions,/temporarily rate-limiting/);
+});
