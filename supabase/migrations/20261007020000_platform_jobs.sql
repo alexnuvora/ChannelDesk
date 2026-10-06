@@ -52,3 +52,14 @@ begin
 end $$;
 revoke all on function public.claim_platform_jobs(text,integer) from public,anon,authenticated;
 grant execute on function public.claim_platform_jobs(text,integer) to service_role;
+
+create or replace function public.get_platform_job(p_job_id uuid,p_workspace_id uuid)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare out jsonb;
+begin
+ if auth.role()<>'service_role' and not exists(select 1 from public.workspace_members wm where wm.workspace_id=p_workspace_id and wm.user_id=(select auth.uid())) then raise exception 'Workspace access required' using errcode='42501'; end if;
+ select jsonb_build_object('id',j.id,'status',j.status,'last_error',j.last_error,'result',j.result) into out from public.platform_jobs j where j.id=p_job_id and j.workspace_id=p_workspace_id;
+ return out;
+end $$;
+revoke all on function public.get_platform_job(uuid,uuid) from public,anon;
+grant execute on function public.get_platform_job(uuid,uuid) to authenticated,service_role;
