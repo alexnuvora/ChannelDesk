@@ -1,3 +1,4 @@
+-- RFC 7591 DCR; ordered after the current production migration history.
 -- OAuth 2.0 Dynamic Client Registration (RFC 7591) for MCP clients.
 create table if not exists public.mcp_oauth_clients (
   client_id text primary key,
