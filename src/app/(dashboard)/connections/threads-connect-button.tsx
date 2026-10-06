@@ -1,0 +1,1 @@
+'use client';export function ThreadsConnectButton({workspaces,label}:{workspaces:{workspace_id:string;name:string}[];label:string}){const id=workspaces[0]?.workspace_id;return <button disabled={!id} onClick={()=>{location.href='/api/oauth/threads/start?workspaceId='+encodeURIComponent(id)}}>{label}</button>}
