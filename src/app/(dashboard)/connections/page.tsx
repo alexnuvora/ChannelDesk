@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { GoogleConnectButton } from "./google-connect-button";
 import { TikTokConnectButton } from "./tiktok-connect-button";
 import { MetaConnectButton } from "./meta-connect-button";
+import { LinkedInConnectButton } from "./linkedin-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -35,6 +36,10 @@ const errorMessages: Record<string,string> = {
   meta_oauth_state_invalid:"The Meta connection session expired or could not be verified.",
   meta_token_exchange_failed:"Meta authorization succeeded, but ChannelDesk could not exchange the authorization code.",
   meta_accounts_failed:"ChannelDesk could not load the Facebook Pages available to this Meta account.",
+  linkedin_not_configured:"LinkedIn OAuth is not configured on this deployment.",
+  linkedin_oauth_state_invalid:"The LinkedIn connection session expired or could not be verified.",
+  linkedin_token_exchange_failed:"LinkedIn authorization succeeded, but token exchange failed.",
+  linkedin_profile_failed:"ChannelDesk could not load the LinkedIn member profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -56,6 +61,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
         {network==="youtube" ? <GoogleConnectButton workspaces={workspaces} label={account?"Reconnect YouTube":"Connect with Google"} /> :
           network==="tiktok" ? <TikTokConnectButton workspaces={workspaces} label={account?"Reconnect TikTok":"Connect TikTok"} /> :
           (network==="facebook"||network==="instagram") ? <MetaConnectButton workspaces={workspaces} label={account?"Reconnect Meta":"Connect Meta"} /> :
+          network==="linkedin" ? <LinkedInConnectButton workspaces={workspaces} label={account?"Reconnect LinkedIn":"Connect LinkedIn"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
