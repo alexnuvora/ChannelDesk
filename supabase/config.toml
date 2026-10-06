@@ -1,3 +1,9 @@
 # ChannelDesk Supabase CLI configuration
 # Project binding is non-secret. Credentials must be supplied via environment/CI secrets.
 project_id = "zmwfyrqbgtvtuajbjnzm"
+
+[functions.agnes-video]
+verify_jwt = true
+
+[functions.job-worker]
+verify_jwt = false
