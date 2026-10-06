@@ -3,7 +3,7 @@ import {ConfigurationError,logFailure} from '@/lib/config';
 import {buildMcp} from '@/lib/mcp-server';
 export const runtime='nodejs';
 export const maxDuration=300;
-const WRITE_TOOLS=new Set(['publish_youtube','schedule_youtube','sync_youtube_status','reschedule_youtube','cancel_youtube_schedule','publish_tiktok','upload_tiktok_draft','get_tiktok_post_status','sync_youtube_analytics','sync_youtube_comments','reply_youtube_comment']);
+const WRITE_TOOLS=new Set(['schedule_publication','reschedule_publication','cancel_scheduled_publication','publish_youtube','schedule_youtube','sync_youtube_status','reschedule_youtube','cancel_youtube_schedule','publish_tiktok','upload_tiktok_draft','get_tiktok_post_status','sync_youtube_analytics','sync_youtube_comments','reply_youtube_comment']);
 function challenge(scope='channeldesk.read',error?:string){return `Bearer resource_metadata="${issuer()}/.well-known/oauth-protected-resource", scope="${scope}"${error?`, error="${error}"`:''}`;}
 async function handle(request:Request){
  try{

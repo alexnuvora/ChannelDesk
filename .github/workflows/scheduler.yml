@@ -1,0 +1,38 @@
+name: ChannelDesk Scheduler
+on:
+  schedule:
+    - cron: '3-58/5 * * * *'
+  workflow_run:
+    workflows: ['Supabase Migrations']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Verify authentication without publishing any posts'
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: channeldesk-scheduler
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: zmwfyrqbgtvtuajbjnzm
+      CHANNELDESK_URL: https://channel-desk-61xl.vercel.app
+      SCHEDULER_DRY_RUN: ${{ github.event_name == 'workflow_run' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm rebuild supabase
+      - name: Invoke scheduler with a single-use ticket
+        run: node scripts/invoke-scheduler.mjs

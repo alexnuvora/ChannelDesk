@@ -6,7 +6,7 @@ import {getTikTokCreatorInfo} from '@/lib/publishing';
 import {YouTubeForm} from './youtube-form';
 import {TikTokForm} from './tiktok-form';
 export default async function Create({searchParams}:{searchParams:Promise<{error?:string;success?:string;date?:string}>}){
- const params=await searchParams,supabase=await createClient();
+ const params=await searchParams;if(params.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(params.date)||!Number.isFinite(Date.parse(params.date+'T12:00:00Z'))))params.date=undefined;const supabase=await createClient();
  const [{data:youtube,error:youtubeError},{data:tiktok,error:tiktokError},{data:assets,error:mediaError}]=await Promise.all([
   supabase.from('social_connections').select('id,display_name,workspace_id').eq('network','youtube').eq('active',true),
   supabase.from('social_connections').select('id,display_name,workspace_id').eq('network','tiktok').eq('active',true),

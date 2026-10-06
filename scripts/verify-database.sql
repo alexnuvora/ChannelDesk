@@ -1,5 +1,6 @@
 -- Read-only verification: no user records, credentials or tokens are emitted.
 do $$
+declare t text;
 begin
  if to_regprocedure('public.exchange_mcp_oauth_code(text,text,text,text,text,text,text)') is null then raise exception 'OAuth exchange migration missing'; end if;
  if to_regprocedure('public.rotate_mcp_oauth_token(text,text,text,text,text,text)') is null then raise exception 'OAuth refresh migration missing'; end if;
@@ -10,5 +11,12 @@ begin
  if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('workspaces','workspace_members','social_connections','media_assets','publications','publication_targets','publication_media','audit_events','mcp_oauth_codes','mcp_oauth_tokens') and not c.relrowsecurity) then raise exception 'RLS must be enabled'; end if;
  if not exists(select 1 from pg_policies where schemaname='public' and tablename='social_connections' and qual like '%social_connections.workspace_id%') then raise exception 'Connection workspace predicate missing'; end if;
  if not exists(select 1 from pg_policies where schemaname='public' and tablename='publications' and qual like '%publications.workspace_id%') then raise exception 'Publication workspace predicate missing'; end if;
+ foreach t in array array['content_templates','approval_requests','inbox_threads','analytics_snapshots','competitors','smart_links','automation_flows','saved_reports'] loop
+  if not exists(select 1 from pg_policies where schemaname='public' and tablename=t and policyname='workspace members read' and qual like '%'||t||'.workspace_id%') then raise exception 'Workspace predicate missing: %',t;end if;
+  if not has_table_privilege('service_role','public.'||t,'select,insert,update,delete') then raise exception 'Server grant missing: %',t;end if;
+ end loop;
+ if has_table_privilege('authenticated','public.approval_requests','update') or has_table_privilege('authenticated','public.analytics_snapshots','insert') then raise exception 'Provider/approval writes must be server controlled';end if;
+ if has_function_privilege('authenticated','public.schedule_planner_publication(uuid,uuid,uuid,uuid,jsonb,timestamptz,text,text)','execute') or has_function_privilege('anon','public.consume_scheduler_ticket(text)','execute') then raise exception 'Planner functions must be server only';end if;
+ if not exists(select 1 from pg_class where oid='public.scheduler_tickets'::regclass and relrowsecurity) then raise exception 'Scheduler tickets need RLS';end if;
 end $$;
 select 'ChannelDesk schema and access checks passed' as verification;
