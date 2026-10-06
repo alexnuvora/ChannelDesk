@@ -1,4 +1,4 @@
-import {admin,base64urlSha256,hashSecret,mcpResource,randomSecret,validClientId,validRedirect,validVerifier,normalizeScope} from '@/lib/mcp-oauth';
+import {activeClientId,admin,base64urlSha256,hashSecret,mcpResource,randomSecret,validRedirect,validVerifier,normalizeScope} from '@/lib/mcp-oauth';
 import {ConfigurationError,logFailure} from '@/lib/config';
 export const runtime='nodejs';
 function json(body:unknown,status=200){return Response.json(body,{status,headers:{'Cache-Control':'no-store','Pragma':'no-cache','Access-Control-Allow-Origin':'*'}});}
@@ -8,7 +8,7 @@ export async function POST(request:Request){
   const raw=await request.text();if(raw.length>12000)return json({error:'invalid_request'},413);
   const body=new URLSearchParams(raw);for(const key of body.keys())if(body.getAll(key).length!==1)return json({error:'invalid_request'},400);
   const grant=body.get('grant_type'),clientId=body.get('client_id')||'',resource=body.get('resource')||'';
-  if(!validClientId(clientId))return json({error:'invalid_client'},400);
+  if(!await activeClientId(clientId))return json({error:'invalid_client'},400);
   if(resource!==mcpResource())return json({error:'invalid_target'},400);
   const access=randomSecret(),refresh=randomSecret();const tokens={p_access_hash:hashSecret(access),p_refresh_hash:hashSecret(refresh)};let data,error;
   if(grant==='authorization_code'){
