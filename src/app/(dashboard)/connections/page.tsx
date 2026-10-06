@@ -8,6 +8,7 @@ import { XConnectButton } from "./x-connect-button";
 import { PinterestConnectButton } from "./pinterest-connect-button";
 import { ThreadsConnectButton } from "./threads-connect-button";
 import { BlueskyConnectButton } from "./bluesky-connect-button";
+import { TwitchConnectButton } from "./twitch-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -56,6 +57,10 @@ const errorMessages: Record<string,string> = {
   threads_oauth_state_invalid:"The Threads connection session expired or could not be verified.",
   threads_token_exchange_failed:"Threads authorization succeeded, but token exchange failed.",
   threads_profile_failed:"ChannelDesk could not load the Threads profile.",
+  twitch_not_configured:"Twitch OAuth is not configured on this deployment.",
+  twitch_oauth_state_invalid:"The Twitch connection session expired or could not be verified.",
+  twitch_token_exchange_failed:"Twitch authorization succeeded, but token exchange failed.",
+  twitch_profile_failed:"ChannelDesk could not load the Twitch profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -82,6 +87,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           network==="pinterest" ? <PinterestConnectButton workspaces={workspaces} label={account?"Reconnect Pinterest":"Connect Pinterest"} /> :
           network==="threads" ? <ThreadsConnectButton workspaces={workspaces} label={account?"Reconnect Threads":"Connect Threads"} /> :
           network==="bluesky" ? <BlueskyConnectButton workspaces={workspaces} label={account?"Reconnect Bluesky":"Connect Bluesky"} /> :
+          network==="twitch" ? <TwitchConnectButton workspaces={workspaces} label={account?"Reconnect Twitch":"Connect Twitch"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
