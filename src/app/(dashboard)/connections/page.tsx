@@ -6,6 +6,7 @@ import { MetaConnectButton } from "./meta-connect-button";
 import { LinkedInConnectButton } from "./linkedin-connect-button";
 import { XConnectButton } from "./x-connect-button";
 import { PinterestConnectButton } from "./pinterest-connect-button";
+import { ThreadsConnectButton } from "./threads-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -50,6 +51,10 @@ const errorMessages: Record<string,string> = {
   pinterest_oauth_state_invalid:"The Pinterest connection session expired or could not be verified.",
   pinterest_token_exchange_failed:"Pinterest authorization succeeded, but token exchange failed.",
   pinterest_profile_failed:"ChannelDesk could not load the Pinterest profile.",
+  threads_not_configured:"Threads OAuth is not configured on this deployment.",
+  threads_oauth_state_invalid:"The Threads connection session expired or could not be verified.",
+  threads_token_exchange_failed:"Threads authorization succeeded, but token exchange failed.",
+  threads_profile_failed:"ChannelDesk could not load the Threads profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -74,6 +79,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           network==="linkedin" ? <LinkedInConnectButton workspaces={workspaces} label={account?"Reconnect LinkedIn":"Connect LinkedIn"} /> :
           network==="x" ? <XConnectButton workspaces={workspaces} label={account?"Reconnect X":"Connect X"} /> :
           network==="pinterest" ? <PinterestConnectButton workspaces={workspaces} label={account?"Reconnect Pinterest":"Connect Pinterest"} /> :
+          network==="threads" ? <ThreadsConnectButton workspaces={workspaces} label={account?"Reconnect Threads":"Connect Threads"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
