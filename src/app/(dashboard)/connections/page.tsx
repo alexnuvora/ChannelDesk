@@ -10,6 +10,7 @@ import { ThreadsConnectButton } from "./threads-connect-button";
 import { BlueskyConnectButton } from "./bluesky-connect-button";
 import { TwitchConnectButton } from "./twitch-connect-button";
 import { GoogleBusinessConnectButton } from "./google-business-connect-button";
+import { syncTikTokDisplay } from "./tiktok-actions";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -75,7 +76,13 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
   const supabase=await createClient();
   const {data:members}=await supabase.from("workspace_members").select("workspace_id,role,workspaces(name)");
   const workspaces=(members||[]).filter(m=>["owner","admin","editor"].includes(m.role)).map(m=>({workspace_id:m.workspace_id,name:(Array.isArray(m.workspaces)?m.workspaces[0]:m.workspaces)?.name||m.workspace_id}));
-  const {data:connections}=await supabase.from("social_connections").select("network,display_name,active").eq("active",true);
+  const {data:connections}=await supabase.from("social_connections").select("id,workspace_id,network,display_name,active,scopes").eq("active",true);
+  const tiktokConnections=(connections||[]).filter(c=>c.network==="tiktok");
+  const tiktokIds=tiktokConnections.map(c=>c.id);
+  const [{data:tiktokProfiles},{data:tiktokVideos}]=tiktokIds.length?await Promise.all([
+    supabase.from("tiktok_profiles").select("connection_id,workspace_id,username,profile_deep_link,bio_description,is_verified,follower_count,following_count,likes_count,video_count,synced_at").in("connection_id",tiktokIds),
+    supabase.from("tiktok_videos").select("connection_id,video_id,title,description,share_url,create_time,like_count,comment_count,share_count,view_count").in("connection_id",tiktokIds).order("create_time",{ascending:false}).limit(12)
+  ]):[{data:[]},{data:[]}];
   const connected=new Map((connections ?? []).map(c=>[c.network as Network,c.display_name]));
   const error=params.error ? (errorMessages[params.error] ?? (params.error.startsWith('tiktok_token_exchange_failed:') ? 'TikTok rejected the configured client credentials. Check the ChannelDesk TikTok Client Key and Client Secret, redeploy, then reconnect.' : params.error)) : null;
   return <><div className="page-title"><div><p className="eyebrow">CONNECTIONS</p><h1>Social channels</h1><p className="muted">One place for the accounts ChannelDesk can publish to and measure.</p></div></div>
@@ -98,5 +105,24 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
+    {tiktokConnections.length>0 && <section className="panel" style={{marginTop:20}}>
+      <div className="panelhead"><div><b>TikTok profile & videos</b><p className="muted">Uses user.info.profile, user.info.stats and video.list so account details and recent public videos can be shown inside ChannelDesk.</p></div></div>
+      <div style={{display:"grid",gap:18}}>
+        {tiktokConnections.map(account=>{const profile=(tiktokProfiles||[]).find(p=>p.connection_id===account.id);const videos=(tiktokVideos||[]).filter(v=>v.connection_id===account.id);return <article key={account.id} style={{display:"grid",gap:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"start",flexWrap:"wrap"}}>
+            <div><b>{account.display_name}</b>{profile?.username&&<p className="muted" style={{margin:"3px 0"}}>@{profile.username}{profile.is_verified?" · Verified":""}</p>}{profile?.bio_description&&<p style={{margin:"6px 0",maxWidth:720}}>{profile.bio_description}</p>}{profile?.profile_deep_link&&<a href={profile.profile_deep_link} target="_blank" rel="noreferrer">Open TikTok profile</a>}</div>
+            <form action={syncTikTokDisplay}><input type="hidden" name="connectionId" value={account.id}/><input type="hidden" name="workspaceId" value={account.workspace_id}/><button className="secondary-button">Refresh TikTok data</button></form>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10}}>
+            <div className="metric-card"><small>Followers</small><b>{Number(profile?.follower_count||0).toLocaleString()}</b></div>
+            <div className="metric-card"><small>Following</small><b>{Number(profile?.following_count||0).toLocaleString()}</b></div>
+            <div className="metric-card"><small>Likes</small><b>{Number(profile?.likes_count||0).toLocaleString()}</b></div>
+            <div className="metric-card"><small>Videos</small><b>{Number(profile?.video_count||0).toLocaleString()}</b></div>
+          </div>
+          <div><small className="eyebrow">AUTHORIZED SCOPES</small><p className="muted">{(account.scopes||[]).join(" · ")}</p></div>
+          <div><b>Recent public TikTok videos</b>{videos.length===0?<p className="muted">No public videos have been synced yet. Reconnect TikTok with video.list approval, then refresh.</p>:<div style={{display:"grid",gap:8,marginTop:8}}>{videos.map(v=><div key={v.video_id} style={{padding:"10px 0",borderTop:"1px solid var(--line)"}}><a href={v.share_url||"#"} target="_blank" rel="noreferrer"><b>{v.title||v.description||"TikTok video"}</b></a><p className="muted" style={{margin:"4px 0 0"}}>{Number(v.view_count||0).toLocaleString()} views · {Number(v.like_count||0).toLocaleString()} likes · {Number(v.comment_count||0).toLocaleString()} comments · {Number(v.share_count||0).toLocaleString()} shares</p></div>)}</div>}</div>
+        </article>})}
+      </div>
+    </section>}
   </>;
 }
