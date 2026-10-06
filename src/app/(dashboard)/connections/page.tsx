@@ -7,6 +7,7 @@ import { LinkedInConnectButton } from "./linkedin-connect-button";
 import { XConnectButton } from "./x-connect-button";
 import { PinterestConnectButton } from "./pinterest-connect-button";
 import { ThreadsConnectButton } from "./threads-connect-button";
+import { BlueskyConnectButton } from "./bluesky-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -80,6 +81,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           network==="x" ? <XConnectButton workspaces={workspaces} label={account?"Reconnect X":"Connect X"} /> :
           network==="pinterest" ? <PinterestConnectButton workspaces={workspaces} label={account?"Reconnect Pinterest":"Connect Pinterest"} /> :
           network==="threads" ? <ThreadsConnectButton workspaces={workspaces} label={account?"Reconnect Threads":"Connect Threads"} /> :
+          network==="bluesky" ? <BlueskyConnectButton workspaces={workspaces} label={account?"Reconnect Bluesky":"Connect Bluesky"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
