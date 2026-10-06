@@ -1,4 +1,4 @@
-// ChannelDesk sequential Agnes video worker: one active generation per workspace.
+// ChannelDesk sequential Agnes video worker: one active generation per workspace; Standard uses Video 2.5 Flash.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';import {json,service} from '../_shared/core.ts';
 const BASE='https://apihub.agnes-ai.com',MAX=256*1024*1024;
 function doneUrl(b:any){return [b?.metadata?.url,b?.url,b?.data?.url,b?.video_url,b?.data?.video_url].find((x:any)=>typeof x==='string'&&x.startsWith('https://')) as string|undefined}
