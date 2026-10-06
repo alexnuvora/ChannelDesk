@@ -9,7 +9,7 @@ import {runFlows} from './flows';
 function key(){const k=Buffer.from(process.env.TOKEN_ENCRYPTION_KEY||'','base64');if(k.length!==32)throw new ConfigurationError('TOKEN_ENCRYPTION_KEY');return k;}
 export function decrypt(value:string){const [iv,tag,data]=value.split('.');if(!iv||!tag||!data)throw new Error('Stored channel credentials are invalid. Reconnect YouTube.');const d=createDecipheriv('aes-256-gcm',key(),Buffer.from(iv,'base64'));d.setAuthTag(Buffer.from(tag,'base64'));return Buffer.concat([d.update(Buffer.from(data,'base64')),d.final()]).toString('utf8');}
 export function encrypt(value:string){const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key(),iv);const data=Buffer.concat([c.update(value,'utf8'),c.final()]);return [iv.toString('base64'),c.getAuthTag().toString('base64'),data.toString('base64')].join('.');}
-type Connection={id:string;workspace_id:string;external_account_id:string;display_name:string;token_ciphertext:string;refresh_token_ciphertext:string|null;token_expires_at:string|null;scopes:string[]};
+export type Connection={id:string;workspace_id:string;external_account_id:string;display_name:string;token_ciphertext:string;refresh_token_ciphertext:string|null;token_expires_at:string|null;scopes:string[]};
 type VideoStatus={uploadStatus?:string;privacyStatus?:string;publishAt?:string;failureReason?:string;rejectionReason?:string;selfDeclaredMadeForKids?:boolean;embeddable?:boolean;publicStatsViewable?:boolean;license?:string};
 export const publicationInput=z.object({connectionId:z.string().uuid(),title:z.string().trim().min(1).max(100),description:z.string().max(5000).default(''),mediaUrl:z.string().url(),scheduledFor:z.string().datetime({offset:true}).optional(),privacy:z.enum(['private','unlisted','public']),madeForKids:z.boolean(),tags:z.array(z.string().max(100)).max(30).default([]),requestId:z.string().min(8).max(128)}).strict();
 export type PublicationInput=z.input<typeof publicationInput>;
@@ -117,7 +117,7 @@ export const cancelYouTubeSchedule=(id:string,workspaceId:string,actorId:string)
 const tiktokPublishInput=z.object({connectionId:z.string().uuid(),caption:z.string().max(2200).default(''),mediaUrl:z.string().url(),privacy:z.enum(['PUBLIC_TO_EVERYONE','MUTUAL_FOLLOW_FRIENDS','FOLLOWER_OF_CREATOR','SELF_ONLY']),disableComment:z.boolean().default(false),disableDuet:z.boolean().default(false),disableStitch:z.boolean().default(false),requestId:z.string().min(8).max(128)}).strict();
 const tiktokDraftInput=z.object({connectionId:z.string().uuid(),mediaUrl:z.string().url(),requestId:z.string().min(8).max(128)}).strict();
 
-async function tiktokAccessToken(c:Connection){
+export async function tiktokAccessToken(c:Connection){
  if(c.token_expires_at&&Date.parse(c.token_expires_at)>Date.now()+60000)return decrypt(c.token_ciphertext);
  if(!c.refresh_token_ciphertext)throw new Error('Reconnect TikTok to renew account access.');
  const clientKey=process.env.TIKTOK_CLIENT_KEY,clientSecret=process.env.TIKTOK_CLIENT_SECRET;if(!clientKey||!clientSecret)throw new ConfigurationError('TikTok OAuth credentials');
