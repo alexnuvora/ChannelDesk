@@ -3,13 +3,14 @@ import {useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Clock3,LoaderCircle} from 'lucide-react';
 import {createClient} from '@/lib/supabase/client';
+import {refreshAiVideo} from '../create/ai-actions';
 
 type Job={id:string;status:string;result:any;created_at:string};
 
 export default function MediaGenerationStatus({workspaceId}:{workspaceId:string}){
  const [jobs,setJobs]=useState<Job[]>([]),router=useRouter();
  useEffect(()=>{let live=true,lastCompleted='';const supabase=createClient();
-  const load=async()=>{const {data}=await supabase.from('ai_generation_jobs').select('id,status,result,created_at').eq('workspace_id',workspaceId).in('status',['queued','generating']).order('created_at',{ascending:true});if(!live)return;setJobs((data||[]) as Job[]);
+  const load=async()=>{const {data}=await supabase.from('ai_generation_jobs').select('id,status,result,created_at').eq('workspace_id',workspaceId).in('status',['queued','generating']).order('created_at',{ascending:true});if(!live)return;const active=(data||[]) as Job[];setJobs(active);if(active[0])await refreshAiVideo(active[0].id).catch(()=>null);
    const {data:done}=await supabase.from('ai_generation_jobs').select('id,completed_at').eq('workspace_id',workspaceId).eq('status','completed').order('completed_at',{ascending:false}).limit(1).maybeSingle();const latest=done?.id||'';if(lastCompleted&&latest&&latest!==lastCompleted)router.refresh();lastCompleted=latest;
   };load();const timer=setInterval(load,5000);return()=>{live=false;clearInterval(timer)}},[workspaceId,router]);
  const rows=useMemo(()=>jobs.map(j=>({...j,queuePosition:j.status==='queued'?jobs.filter(x=>x.status==='queued'&&x.created_at<=j.created_at).length:null,progress:j.status==='generating'?Math.max(0,Math.min(100,Math.round(Number(j.result?.progress||0)))):0})),[jobs]);
