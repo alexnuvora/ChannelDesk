@@ -1,0 +1,1 @@
+'use client';export function GoogleBusinessConnectButton({workspaces,label}:{workspaces:{workspace_id:string;name:string}[];label:string}){const id=workspaces[0]?.workspace_id;return <button disabled={!id} onClick={()=>{location.href='/api/oauth/google-business/start?workspaceId='+encodeURIComponent(id)}}>{label}</button>}
