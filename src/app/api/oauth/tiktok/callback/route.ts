@@ -3,6 +3,7 @@ import {createClient} from '@/lib/supabase/server';
 import {admin,assertWorkspaceAccess} from '@/lib/mcp-oauth';
 import {appOrigin,logFailure} from '@/lib/config';
 import {encrypt} from '@/lib/publishing';
+import {syncTikTokDisplayData} from '@/lib/tiktok-display';
 
 export async function GET(request:NextRequest){
  const base=new URL('/connections',appOrigin());
@@ -24,9 +25,10 @@ export async function GET(request:NextRequest){
    throw new Error('tiktok_token_exchange_failed:'+providerError+':'+safeDescription+(providerLogId?':log_'+providerLogId:''));
   }
   const granted=String(tokens.scope||'').split(',').map((s:string)=>s.trim()).filter(Boolean);if(!granted.includes('user.info.basic'))throw new Error('tiktok_basic_scope_missing');
-  const fields='open_id,union_id,avatar_url,display_name';const userRes=await fetch('https://open.tiktokapis.com/v2/user/info/?fields='+encodeURIComponent(fields),{headers:{Authorization:`Bearer ${tokens.access_token}`},signal:AbortSignal.timeout(20000),redirect:'error'});const info=await userRes.json().catch(()=>null);if(!userRes.ok||info?.error?.code!=='ok')throw new Error('tiktok_profile_lookup_failed');
+  const fields='open_id,union_id,avatar_url,display_name,username,profile_deep_link,bio_description,is_verified,follower_count,following_count,likes_count,video_count';const userRes=await fetch('https://open.tiktokapis.com/v2/user/info/?fields='+encodeURIComponent(fields),{headers:{Authorization:`Bearer ${tokens.access_token}`},signal:AbortSignal.timeout(20000),redirect:'error'});const info=await userRes.json().catch(()=>null);if(!userRes.ok||info?.error?.code!=='ok')throw new Error('tiktok_profile_lookup_failed');
   const profile=info?.data?.user||{};const db=admin();const {data:old}=await db.from('social_connections').select('id,refresh_token_ciphertext').eq('workspace_id',parsed.workspaceId).eq('network','tiktok').eq('external_account_id',tokens.open_id).maybeSingle();
-  const {error}=await db.from('social_connections').upsert({workspace_id:parsed.workspaceId,network:'tiktok',external_account_id:tokens.open_id,display_name:profile.display_name||profile.username||'TikTok account',token_ciphertext:encrypt(tokens.access_token),refresh_token_ciphertext:tokens.refresh_token?encrypt(tokens.refresh_token):old?.refresh_token_ciphertext||null,scopes:granted,token_expires_at:tokens.expires_in?new Date(Date.now()+tokens.expires_in*1000).toISOString():null,active:true},{onConflict:'workspace_id,network,external_account_id'});if(error)throw error;
+  const {data:connection,error}=await db.from('social_connections').upsert({workspace_id:parsed.workspaceId,network:'tiktok',external_account_id:tokens.open_id,display_name:profile.display_name||profile.username||'TikTok account',token_ciphertext:encrypt(tokens.access_token),refresh_token_ciphertext:tokens.refresh_token?encrypt(tokens.refresh_token):old?.refresh_token_ciphertext||null,scopes:granted,token_expires_at:tokens.expires_in?new Date(Date.now()+tokens.expires_in*1000).toISOString():null,active:true},{onConflict:'workspace_id,network,external_account_id'}).select('id').single();if(error||!connection)throw error||new Error('tiktok_connection_save_failed');
+  await syncTikTokDisplayData(connection.id,parsed.workspaceId,user.id);
   await db.from('audit_events').insert({workspace_id:parsed.workspaceId,actor_id:user.id,action:'tiktok.connected',entity_type:'social_connection',entity_id:tokens.open_id,metadata:{displayName:profile.display_name||profile.username,scopes:granted}});
   base.searchParams.set('connected','tiktok');
  }catch(e){logFailure('tiktok.oauth.callback_failed',e);base.searchParams.set('error',e instanceof Error?e.message:'tiktok_oauth_failed');}
