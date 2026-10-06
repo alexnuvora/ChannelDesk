@@ -4,6 +4,7 @@ import { GoogleConnectButton } from "./google-connect-button";
 import { TikTokConnectButton } from "./tiktok-connect-button";
 import { MetaConnectButton } from "./meta-connect-button";
 import { LinkedInConnectButton } from "./linkedin-connect-button";
+import { XConnectButton } from "./x-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -40,6 +41,10 @@ const errorMessages: Record<string,string> = {
   linkedin_oauth_state_invalid:"The LinkedIn connection session expired or could not be verified.",
   linkedin_token_exchange_failed:"LinkedIn authorization succeeded, but token exchange failed.",
   linkedin_profile_failed:"ChannelDesk could not load the LinkedIn member profile.",
+  x_not_configured:"X OAuth is not configured on this deployment.",
+  x_oauth_state_invalid:"The X connection session expired or could not be verified.",
+  x_token_exchange_failed:"X authorization succeeded, but token exchange failed.",
+  x_profile_failed:"ChannelDesk could not load the X profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -62,6 +67,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           network==="tiktok" ? <TikTokConnectButton workspaces={workspaces} label={account?"Reconnect TikTok":"Connect TikTok"} /> :
           (network==="facebook"||network==="instagram") ? <MetaConnectButton workspaces={workspaces} label={account?"Reconnect Meta":"Connect Meta"} /> :
           network==="linkedin" ? <LinkedInConnectButton workspaces={workspaces} label={account?"Reconnect LinkedIn":"Connect LinkedIn"} /> :
+          network==="x" ? <XConnectButton workspaces={workspaces} label={account?"Reconnect X":"Connect X"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
