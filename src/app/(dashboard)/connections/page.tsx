@@ -5,6 +5,7 @@ import { TikTokConnectButton } from "./tiktok-connect-button";
 import { MetaConnectButton } from "./meta-connect-button";
 import { LinkedInConnectButton } from "./linkedin-connect-button";
 import { XConnectButton } from "./x-connect-button";
+import { PinterestConnectButton } from "./pinterest-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -45,6 +46,10 @@ const errorMessages: Record<string,string> = {
   x_oauth_state_invalid:"The X connection session expired or could not be verified.",
   x_token_exchange_failed:"X authorization succeeded, but token exchange failed.",
   x_profile_failed:"ChannelDesk could not load the X profile.",
+  pinterest_not_configured:"Pinterest OAuth is not configured on this deployment.",
+  pinterest_oauth_state_invalid:"The Pinterest connection session expired or could not be verified.",
+  pinterest_token_exchange_failed:"Pinterest authorization succeeded, but token exchange failed.",
+  pinterest_profile_failed:"ChannelDesk could not load the Pinterest profile.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -68,6 +73,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           (network==="facebook"||network==="instagram") ? <MetaConnectButton workspaces={workspaces} label={account?"Reconnect Meta":"Connect Meta"} /> :
           network==="linkedin" ? <LinkedInConnectButton workspaces={workspaces} label={account?"Reconnect LinkedIn":"Connect LinkedIn"} /> :
           network==="x" ? <XConnectButton workspaces={workspaces} label={account?"Reconnect X":"Connect X"} /> :
+          network==="pinterest" ? <PinterestConnectButton workspaces={workspaces} label={account?"Reconnect Pinterest":"Connect Pinterest"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
