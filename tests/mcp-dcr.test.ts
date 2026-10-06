@@ -21,7 +21,7 @@ test('dynamic registration is public-client PKCE only and validates redirects',(
 });
 
 test('registered MCP clients are persisted privately and rate limited atomically',()=>{
- const sql=readFileSync('supabase/migrations/20261006055000_mcp_dynamic_client_registration.sql','utf8');
+ const sql=readFileSync('supabase/migrations/20261007033000_mcp_dynamic_client_registration.sql','utf8');
  assert.match(sql,/create table if not exists public\.mcp_oauth_clients/);
  assert.match(sql,/alter table public\.mcp_oauth_clients enable row level security/);
  assert.match(sql,/revoke all on public\.mcp_oauth_clients from public,anon,authenticated/);
