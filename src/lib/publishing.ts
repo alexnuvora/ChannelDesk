@@ -5,6 +5,7 @@ import {fetchVideo,validateMediaUrl} from './media-fetch';
 import {ConfigurationError,logFailure,appOrigin} from './config';
 import {deliveryMediaUrl} from './media-access';
 import {schedulePublication,changePlannerSchedule,youtubeSchedulePayload,tiktokSchedulePayload} from './scheduling';
+import {runFlows} from './flows';
 function key(){const k=Buffer.from(process.env.TOKEN_ENCRYPTION_KEY||'','base64');if(k.length!==32)throw new ConfigurationError('TOKEN_ENCRYPTION_KEY');return k;}
 export function decrypt(value:string){const [iv,tag,data]=value.split('.');if(!iv||!tag||!data)throw new Error('Stored channel credentials are invalid. Reconnect YouTube.');const d=createDecipheriv('aes-256-gcm',key(),Buffer.from(iv,'base64'));d.setAuthTag(Buffer.from(tag,'base64'));return Buffer.concat([d.update(Buffer.from(data,'base64')),d.final()]).toString('utf8');}
 export function encrypt(value:string){const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key(),iv);const data=Buffer.concat([c.update(value,'utf8'),c.final()]);return [iv.toString('base64'),c.getAuthTag().toString('base64'),data.toString('base64')].join('.');}
@@ -164,12 +165,12 @@ export async function dispatchDuePublications(limit=3){
     const p=tiktokSchedulePayload.parse(settings),creator=await getTikTokCreatorInfo(job.connection_id,job.workspace_id,job.author_id);
     assertTikTokCapabilities(p,creator);const data=await initTikTok(connection,mediaUrl,'https://open.tiktokapis.com/v2/post/publish/video/init/',{title:p.caption,privacy_level:p.privacy,disable_comment:p.disableComment,disable_duet:p.disableDuet,disable_stitch:p.disableStitch});externalId=data.publish_id;
    }else throw new Error('Scheduling is not implemented for this network.');
-   const {error:save}=await db.rpc('finish_scheduled_publication',{p_publication_id:job.publication_id,p_target_id:job.target_id,p_lease_id:job.lease_id,p_state:state,p_external_post_id:externalId,p_external_url:externalUrl,p_error:null});if(save)throw save;
+   const {error:save}=await db.rpc('finish_scheduled_publication',{p_publication_id:job.publication_id,p_target_id:job.target_id,p_lease_id:job.lease_id,p_state:state,p_external_post_id:externalId,p_external_url:externalUrl,p_error:null});if(save)throw save;if(state==='published')await runFlows({type:'publication_published',workspaceId:job.workspace_id,actorId:job.author_id,publicationId:job.publication_id,payload:{network:job.network,externalId}});
    return {publicationId:job.publication_id,network:job.network,state,externalId};
   }catch(e){
    const uncertain=!!externalId||(e instanceof UploadError&&e.uncertain),state=uncertain?'needs_review':'failed';logFailure('scheduler.delivery.failed',e);
    const message=e instanceof Error?e.message:'Delivery could not be confirmed. Check the provider.';
-   const {error:save}=await db.rpc('finish_scheduled_publication',{p_publication_id:job.publication_id,p_target_id:job.target_id,p_lease_id:job.lease_id,p_state:state,p_external_post_id:externalId,p_external_url:externalUrl,p_error:message});if(save)logFailure('scheduler.result.failed',save);
+   const {error:save}=await db.rpc('finish_scheduled_publication',{p_publication_id:job.publication_id,p_target_id:job.target_id,p_lease_id:job.lease_id,p_state:state,p_external_post_id:externalId,p_external_url:externalUrl,p_error:message});if(save)logFailure('scheduler.result.failed',save);if(!save&&state==='failed')await runFlows({type:'publication_failed',workspaceId:job.workspace_id,actorId:job.author_id,publicationId:job.publication_id,payload:{network:job.network,error:message}});
    return {publicationId:job.publication_id,network:job.network,state:save?'needs_review':state};
   }
  }));
