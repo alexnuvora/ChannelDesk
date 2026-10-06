@@ -9,6 +9,7 @@ import { PinterestConnectButton } from "./pinterest-connect-button";
 import { ThreadsConnectButton } from "./threads-connect-button";
 import { BlueskyConnectButton } from "./bluesky-connect-button";
 import { TwitchConnectButton } from "./twitch-connect-button";
+import { GoogleBusinessConnectButton } from "./google-business-connect-button";
 import { SocialIcon } from "@/components/social-icon";
 
 const labels: Record<Network,string> = {
@@ -61,6 +62,11 @@ const errorMessages: Record<string,string> = {
   twitch_oauth_state_invalid:"The Twitch connection session expired or could not be verified.",
   twitch_token_exchange_failed:"Twitch authorization succeeded, but token exchange failed.",
   twitch_profile_failed:"ChannelDesk could not load the Twitch profile.",
+  google_business_not_configured:"Google Business Profile OAuth is not configured on this deployment.",
+  google_business_oauth_state_invalid:"The Google Business Profile connection session expired or could not be verified.",
+  google_business_token_exchange_failed:"Google authorization succeeded, but token exchange failed.",
+  google_business_accounts_failed:"ChannelDesk could not load your Google Business Profile accounts.",
+  google_business_locations_failed:"No accessible Google Business Profile locations were found.",
   oauth_failed:"The Google connection failed. Please try again.",
 };
 
@@ -88,6 +94,7 @@ export default async function Connections({searchParams}:{searchParams:Promise<{
           network==="threads" ? <ThreadsConnectButton workspaces={workspaces} label={account?"Reconnect Threads":"Connect Threads"} /> :
           network==="bluesky" ? <BlueskyConnectButton workspaces={workspaces} label={account?"Reconnect Bluesky":"Connect Bluesky"} /> :
           network==="twitch" ? <TwitchConnectButton workspaces={workspaces} label={account?"Reconnect Twitch":"Connect Twitch"} /> :
+          network==="google_business" ? <GoogleBusinessConnectButton workspaces={workspaces} label={account?"Reconnect Google Business":"Connect Google Business"} /> :
           account ? <span>Account linked; publishing adapter pending</span> : <button disabled>Coming next</button>}
       </article>
     })}</div>
