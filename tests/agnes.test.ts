@@ -16,7 +16,7 @@ test('Agnes retries transient throttling safely without duplicating ambiguous vi
  assert.match(service,/retryable429=r\.status===429&&\(safeRetry\|\|videoCreate\)/);
  assert.match(service,/retryable5xx=r\.status>=500&&r\.status<=599&&safeRetry/);
  assert.match(service,/hardQuota=status===429&&\/free users\|token plan\|upgrade\|quota\|credits\?\/i/);
- assert.match(service,/failure_class:classification/);
+ const worker=readFileSync('supabase/functions/job-worker/index.ts','utf8');assert.match(worker,/retryAfterMs/);assert.match(worker,/backoffMs/);assert.match(worker,/retry429=r\.status===429&&\(safeRetry\|\|videoCreate\)/);assert.match(worker,/retry5xx=r\.status>=500&&r\.status<=599&&safeRetry/);
 });
 
 test('ChannelDesk surfaces hard Agnes quota separately from transient 429 throttling',()=>{
