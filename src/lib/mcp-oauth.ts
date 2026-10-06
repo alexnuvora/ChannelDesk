@@ -1,11 +1,12 @@
 import {createClient} from '@supabase/supabase-js';
 import {randomBytes} from 'node:crypto';
 import {requireServerDatabaseConfig} from './config';
-import {hashSecret,mcpResource} from './oauth-validation';
+import {hashSecret,mcpResource,validClientId,CHATGPT_CLIENT_ID} from './oauth-validation';
 export * from './oauth-validation';
 export {appOrigin} from './config';
 export function admin(){const {url,key}=requireServerDatabaseConfig();return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});}
 export const randomSecret=()=>randomBytes(32).toString('base64url');
+export async function activeClientId(clientId:string){if(!validClientId(clientId))return false;if(clientId===CHATGPT_CLIENT_ID||/^https:\/\/chatgpt\.com\/oauth\/[A-Za-z0-9_-]+\/client\.json$/.test(clientId))return true;const {data,error}=await admin().from('mcp_oauth_clients').select('client_id').eq('client_id',clientId).is('revoked_at',null).maybeSingle();if(error)throw error;return !!data;}
 export async function authenticateMcp(request:Request){
  const auth=request.headers.get('authorization');if(!auth?.startsWith('Bearer '))return null;
  const raw=auth.slice(7);if(!/^[A-Za-z0-9_-]{43}$/.test(raw))return null;
