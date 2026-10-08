@@ -1,4 +1,5 @@
 -- Extend durable Planner schedule claims to Facebook Page posts.
+-- A scheduled Facebook post is claimed once under a lease. Failures are marked for review, not automatically re-published.
 create or replace function public.schedule_planner_publication(p_workspace_id uuid,p_actor_id uuid,p_connection_id uuid,p_media_id uuid,p_payload jsonb,p_scheduled_for timestamptz,p_request_id text,p_request_hash text)
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare c public.social_connections%rowtype;t public.publication_targets%rowtype;pid uuid;idem text;
