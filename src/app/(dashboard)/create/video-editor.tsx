@@ -4,7 +4,7 @@ import {createClient} from '@/lib/supabase/client';
 
 type Asset={id:string;workspace_id:string;mime_type:string;source_url:string|null;storage_key:string;duration_ms:number|null};
 type Effect='none'|'zoom'|'pan'|'pulse';
-const SIZE=720,LENGTH=20,FPS=24,MAX_AUDIO=30*1024*1024,MAX_RENDER=256*1024*1024;
+const LENGTH=20,FPS=24,MAX_AUDIO=30*1024*1024,MAX_RENDER=256*1024*1024;
 export function VideoEditor({asset,workspaceId,onRendered}:{asset:Asset;workspaceId:string;onRendered:(a:Asset)=>void}){
  const [effect,setEffect]=useState<Effect>('zoom'),[caption,setCaption]=useState(''),[sound,setSound]=useState<'none'|'ambient'|'upload'>('ambient'),[audio,setAudio]=useState<File|null>(null),[busy,setBusy]=useState(false),[progress,setProgress]=useState(0),[error,setError]=useState(''),abort=useRef(false);
  async function render(){
@@ -45,7 +45,7 @@ export function VideoEditor({asset,workspaceId,onRendered}:{asset:Asset;workspac
     const w=img.naturalWidth*cover*scale,h=img.naturalHeight*cover*scale,offset=effect==='pan'?Math.sin(t*Math.PI*2)*25:0;
     draw.drawImage(img,(cw-w)/2+offset,(ch-h)/2,w,h);
     draw.fillStyle='rgba(0,0,0,.24)';draw.fillRect(0,0,cw,ch);
-    if(caption.trim()){draw.fillStyle='rgba(0,0,0,.62)';draw.fillRect(28,ch-285,cw-56,190);draw.font='bold 37px sans-serif';draw.textAlign='center';draw.fillStyle='#fff';const words=caption.trim().split(/\s+/);let lines:string[]=[],line='';for(const word of words){const next=(line+' '+word).trim();if(draw.measureText(next).width>cw-100&&line){lines.push(line);line=word}else line=next;}if(line)lines.push(line);lines.slice(0,3).forEach((line,i)=>draw.fillText(line,cw/2,ch-210+i*48));}
+    if(caption.trim()){draw.fillStyle='rgba(0,0,0,.62)';draw.fillRect(28,ch-285,cw-56,190);draw.font='bold 37px sans-serif';draw.textAlign='center';draw.fillStyle='#fff';const words=caption.trim().split(/\s+/);const lines:string[]=[];let line='';for(const word of words){const next=(line+' '+word).trim();if(draw.measureText(next).width>cw-100&&line){lines.push(line);line=word}else line=next;}if(line)lines.push(line);lines.slice(0,3).forEach((line,i)=>draw.fillText(line,cw/2,ch-210+i*48));}
     setProgress(Math.min(99,Math.round(t*100)));if(t<1)raf=requestAnimationFrame(paint);else recorder.stop();
    };
    recorder.start(1000);raf=requestAnimationFrame(paint);await completed;cancelAnimationFrame(raf);stopSound();
