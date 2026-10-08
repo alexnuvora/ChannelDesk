@@ -9,6 +9,8 @@ export function MetaForm({accounts,requestId,network}:{accounts:Account[];reques
  const [connectionId,setConnectionId]=useState(accounts.length===1?accounts[0].id:'');
  const [text,setText]=useState('');
  const [mediaUrl,setMediaUrl]=useState('');
+ const [scheduled,setScheduled]=useState(false);
+ const [scheduleLocal,setScheduleLocal]=useState('');
  const selected=accounts.find(a=>a.id===connectionId);
  const permission=network==='facebook'?'pages_manage_posts':'instagram_content_publish';
  const permitted=!!selected&&Array.isArray(selected.scopes)&&selected.scopes.includes(permission);
@@ -19,8 +21,11 @@ export function MetaForm({accounts,requestId,network}:{accounts:Account[];reques
   {selected&&!permitted&&<p className="notice error">This account has not granted {permission}. Reconnect it in Social Channels.</p>}
   <label>{network==='facebook'?'Post text':'Caption'}<textarea name="text" value={text} onChange={e=>setText(e.target.value)} className="composer compact-composer" maxLength={network==='facebook'?5000:2200} placeholder="Write your post…"/></label>
   <label>{network==='facebook'?'Public image URL (optional)':'Public image or video URL (required)'}<input type="url" name="mediaUrl" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} required={network==='instagram'} placeholder="https://example.com/image.jpg" pattern="https://.*"/></label>
-  <p className="form-hint">{network==='facebook'?'Publish a text post or optionally attach a publicly accessible image.':'Instagram publishing requires a publicly accessible HTTPS media URL. This flow will be expanded to select files from Media Library.'} Posts are sent immediately; Meta scheduling is not yet enabled.</p>
-  <div className="publish-actions"><Submit disabled={!permitted||!valid||(network==='instagram'&&!mediaUrl.trim())}/></div>
+  <p className="form-hint">{network==='facebook'?'Publish a text post or optionally attach a publicly accessible image.':'Instagram publishing requires a publicly accessible HTTPS media URL. This flow will be expanded to select files from Media Library.'}</p>
+  {network==='facebook'&&<label><input type="checkbox" checked={scheduled} onChange={e=>setScheduled(e.target.checked)}/> Schedule for later</label>}
+  {network==='facebook'&&scheduled&&<label>Publish date &amp; time<input name="scheduledLocal" type="datetime-local" required value={scheduleLocal} onChange={e=>setScheduleLocal(e.target.value)}/></label>}
+  {network==='facebook'&&<p className="form-hint">{scheduled?'Scheduled posts use the ChannelDesk Planner worker.':'Facebook posts will be published immediately.'}</p>}
+  <div className="publish-actions"><Submit disabled={!permitted||!valid||(network==='instagram'&&!mediaUrl.trim())||(scheduled&&!scheduleLocal)}/></div>
   {(!permitted||!valid||(network==='instagram'&&!mediaUrl.trim()))&&<p className="form-hint">{!connectionId?'Choose an account to continue.':!permitted?'Reconnect the account with publishing permission.':'Add the required post content before publishing.'}</p>}
  </form>;
 }
