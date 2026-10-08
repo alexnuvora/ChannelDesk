@@ -15,7 +15,7 @@ export function WizardAgnes({platform,workspaceId,onCaption,onTitle,onVideo}:{pl
   const tick=async()=>{const r=await refreshAiVideo(id);if(!running)return;if(!r.ok){setError(r.error);return;}setJob(r.data);if(r.data.status==='failed')setError(r.data.error||'Agnes generation failed.');};
   const timer=setInterval(()=>void tick(),5000);void tick();return()=>{running=false;clearInterval(timer);};
  },[job?.id,job?.status]);
- async function useVideo(){
+ async function selectGeneratedVideo(){
   if(!job?.mediaAssetId||delivered.current===job.mediaAssetId)return;
   setError('');
   const {data,error:lookupError}=await createClient().from('media_assets').select('id,workspace_id,mime_type,source_url,storage_key,duration_ms').eq('id',job.mediaAssetId).eq('workspace_id',workspaceId).maybeSingle();
@@ -36,7 +36,7 @@ export function WizardAgnes({platform,workspaceId,onCaption,onTitle,onVideo}:{pl
     <p className="form-hint">Agnes generates clips up to 12 seconds. For a fixed 20-second video from an image, use the FFmpeg converter below.</p>
     <button type="button" className="publish-button" disabled={busy||prompt.trim().length<8||!!job&&['queued','generating'].includes(job.status)} onClick={generate}>{busy?'Starting generation…':'Generate AI video'}</button>
    </div>}
-   {job&&<div className="notice" role="status"><b>AI video: {job.status}</b>{typeof job.progress==='number'?' · '+job.progress+'%':''}{job.status==='completed'&&<button type="button" className="button" onClick={()=>void useVideo()}>Use generated video in post</button>}</div>}
+   {job&&<div className="notice" role="status"><b>AI video: {job.status}</b>{typeof job.progress==='number'?' · '+job.progress+'%':''}{job.status==='completed'&&<button type="button" className="button" onClick={()=>void selectGeneratedVideo()}>Use generated video in post</button>}</div>}
    {error&&<p className="notice error" role="alert">{error}</p>}
   </div>
  </section>;
