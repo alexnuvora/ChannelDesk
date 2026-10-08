@@ -39,6 +39,7 @@ const errorMessages: Record<string,string> = {
   tiktok_basic_scope_missing:"TikTok did not grant the basic profile permission.",
   tiktok_profile_lookup_failed:"ChannelDesk could not read the selected TikTok profile.",
   meta_not_configured:"Meta OAuth is not configured on this deployment.",
+  meta_login_config_missing:"Facebook Login for Business needs a configuration ID. Create one under Meta Developers → Facebook Login for Business → Configurations, then set META_LOGIN_CONFIG_ID in Vercel Production and redeploy.",
   meta_oauth_state_invalid:"The Meta connection session expired or could not be verified.",
   meta_token_exchange_failed:"Meta authorization succeeded, but ChannelDesk could not exchange the authorization code.",
   meta_accounts_failed:"ChannelDesk could not load the Facebook Pages available to this Meta account.",
