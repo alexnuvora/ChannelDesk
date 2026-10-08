@@ -1,7 +1,7 @@
 'use server';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
-import {createYouTubePublication,publishTikTok,uploadTikTokDraft,getTikTokCreatorInfo,assertTikTokCapabilities} from '@/lib/publishing';
+import {createYouTubePublication,publishTikTok,uploadTikTokDraft,publishMetaPost,getTikTokCreatorInfo,assertTikTokCapabilities} from '@/lib/publishing';
 import {logFailure,appOrigin} from '@/lib/config';
 import {schedulePublication,youtubeSchedulePayload,tiktokSchedulePayload} from '@/lib/scheduling';
 import {ZodError} from 'zod';
@@ -50,5 +50,31 @@ export async function submitTikTok(formData:FormData){
   if(['failed','needs_review'].includes(result.state))throw new Error('Publication '+result.publicationId+': '+result.state+'. Check its status before retrying.');
   target=(mode==='scheduled'?'/planner?message=':'/create?success=')+encodeURIComponent('Publication '+result.publicationId+': '+result.state);
  }catch(e){logFailure('tiktok.form.failed',e);target='/create?error='+encodeURIComponent(describeError(e));}
+ redirect(target);
+}
+
+export async function submitMeta(formData:FormData){
+ const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect('/login');
+ let target='/create';
+ try{
+  const network=String(formData.get('network')||'');
+  if(network!=='facebook'&&network!=='instagram')throw new Error('Choose Facebook or Instagram.');
+  const connectionId=String(formData.get('connectionId')||'');
+  const text=String(formData.get('text')||'').trim();
+  const rawMedia=String(formData.get('mediaUrl')||'').trim();
+  if(text.length>5000||(network==='instagram'&&text.length>2200))throw new Error('Post text exceeds the platform limit.');
+  if(!text&&!rawMedia)throw new Error('Add text or media before publishing.');
+  if(network==='instagram'&&!rawMedia)throw new Error('Instagram requires media.');
+  let mediaUrl:string|undefined;
+  if(rawMedia){const url=new URL(rawMedia);if(url.protocol!=='https:'||url.username||url.password)throw new Error('Use a public HTTPS media URL.');mediaUrl=url.href;}
+  const requestId=String(formData.get('requestId')||'');
+  if(requestId.length<8||requestId.length>128)throw new Error('Invalid publishing request. Refresh and try again.');
+  const {data:connection,error}=await s.from('social_connections').select('workspace_id,network,scopes,active').eq('id',connectionId).eq('network',network).eq('active',true).maybeSingle();
+  if(error||!connection)throw new Error('Choose an active Facebook or Instagram account.');
+  const required=network==='facebook'?'pages_manage_posts':'instagram_content_publish';
+  if(!Array.isArray(connection.scopes)||!connection.scopes.includes(required))throw new Error('Reconnect the account to grant '+required+'.');
+  const result=await publishMetaPost(connectionId,connection.workspace_id,user.id,{text,mediaUrl,requestId});
+  target='/create?success='+encodeURIComponent(network+' publication '+result.externalPostId+': published');
+ }catch(e){logFailure('meta.form.failed',e);target='/create?error='+encodeURIComponent(describeError(e));}
  redirect(target);
 }
