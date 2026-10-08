@@ -73,8 +73,17 @@ export async function submitMeta(formData:FormData){
   if(error||!connection)throw new Error('Choose an active Facebook or Instagram account.');
   const required=network==='facebook'?'pages_manage_posts':'instagram_content_publish';
   if(!Array.isArray(connection.scopes)||!connection.scopes.includes(required))throw new Error('Reconnect the account to grant '+required+'.');
-  const result=await publishMetaPost(connectionId,connection.workspace_id,user.id,{text,mediaUrl,requestId});
-  target='/create?success='+encodeURIComponent(network+' publication '+result.externalPostId+': published');
+  const scheduledLocal=String(formData.get('scheduledLocal')||'').trim();
+  if(scheduledLocal){
+   if(network!=='facebook')throw new Error('Instagram scheduling is not enabled yet.');
+   const when=new Date(scheduledLocal);
+   if(!Number.isFinite(when.getTime())||when.getTime()<=Date.now()+60000)throw new Error('Choose a future schedule at least one minute from now.');
+   const result=await schedulePublication({connectionId,scheduledFor:when.toISOString(),requestId,payload:{message:text, ...(mediaUrl?{mediaUrl}:{})}},connection.workspace_id,user.id);
+   target='/planner?message='+encodeURIComponent('Facebook post '+result.publicationId+': '+result.state);
+  }else{
+   const result=await publishMetaPost(connectionId,connection.workspace_id,user.id,{text,mediaUrl,requestId});
+   target='/create?success='+encodeURIComponent(network+' publication '+result.externalPostId+': published');
+  }
  }catch(e){logFailure('meta.form.failed',e);target='/create?error='+encodeURIComponent(describeError(e));}
  redirect(target);
 }
