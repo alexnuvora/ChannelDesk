@@ -104,3 +104,54 @@ body{background:var(--app-bg);color:var(--copy)}.shell{grid-template-columns:218
 }
 
 .cd-onboarding{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px;margin-bottom:20px;border:1px solid #e5e0ff;border-radius:16px;background:#f7f5ff}.cd-onboarding p{margin:5px 0;color:#626078}.cd-onboarding .button{background:#5347db;white-space:nowrap}.cd-onboarding svg{width:17px}@media(max-width:650px){.cd-onboarding{flex-direction:column;align-items:stretch}}
+
+
+/* Visual redesign v2: independent dashboard layout, stronger typographic hierarchy */
+.cd-shell{background:#f6f7fb;color:#20203a}
+.cd-shell .content{max-width:1550px;padding:38px clamp(20px,4vw,60px) 80px}
+.cd-shell .sidebar{background:#16182d!important;border-color:#282a43!important;color:#eef0ff}
+.cd-shell .sidebar .brand,.cd-shell .sidebar .sidebar-head>small{color:#fff}
+.cd-shell .sidebar .sidebar-head>small{color:#a6a8c4}
+.cd-shell .sidebar nav a{color:#c5c7e0}
+.cd-shell .sidebar nav a svg{color:#a6a8c4}
+.cd-shell .sidebar nav a:hover{background:#292c48;color:#fff}
+.cd-shell .sidebar nav a.active,.cd-shell .sidebar .nav-primary.active,.cd-shell .sidebar .nav-children a.active{background:#38345d!important;color:#fff!important}
+.cd-shell .sidebar nav a.active svg{color:#c4b8ff}
+.cd-shell .sidebar .nav-children{border-color:#343751}
+.cd-shell .sidebar .sidebar-toggle{background:#282a43;color:#fff;border-color:#494c6a}
+.cd-shell .sidebar .ai{background:#292b4b;border-color:#46406e;color:#fff}
+.cd-shell .sidebar .ai small{color:#a6a8c4}
+.cd-shell .sidebar .sidebar-action{color:#b8bbd5}
+.cd-shell .sidebar .sidebar-action:hover{background:#292b4b;color:#fff}
+.cd-shell .cd-topbar{background:#fff;min-height:76px;border-bottom:1px solid #e9eaf2}
+.cd-shell .dashboard-welcome{background:linear-gradient(110deg,#26244a,#5142a1);border:0;border-radius:22px;padding:32px 34px;min-height:156px;margin:0 0 24px;color:#fff;box-shadow:0 12px 24px rgba(40,31,90,.13)}
+.cd-shell .dashboard-welcome h1{font-size:clamp(24px,2.3vw,36px);font-weight:820;color:#fff;letter-spacing:-.045em}
+.cd-shell .dashboard-welcome p{font-size:13px;color:#ded9fb}
+.cd-shell .dashboard-welcome .button{background:#fff!important;color:#3d357f!important;border:1px solid #fff;border-radius:12px;padding:13px 16px;font-size:12px;box-shadow:none}
+.cd-shell .dashboard-metrics{gap:18px;margin-bottom:22px}
+.cd-shell .dashboard-metrics article{min-height:150px;background:#fff;border:1px solid #e8eaf3;border-radius:18px;padding:24px;box-shadow:0 7px 22px rgba(27,31,70,.035);flex-direction:column;gap:13px}
+.cd-shell .dashboard-metrics .metric-icon{width:40px;height:40px;border-radius:12px}
+.cd-shell .dashboard-metrics .metric-icon svg{width:20px;height:20px}
+.cd-shell .dashboard-metrics small{font-size:12px;color:#777b95}
+.cd-shell .dashboard-metrics strong{font-size:30px;font-weight:800;color:#24233d}
+.cd-shell .dashboard-metrics em{font-size:11px;color:#8d90a4}
+.cd-shell .dashboard-layout{gap:20px;grid-template-columns:minmax(0,1.9fr) minmax(290px,.85fr)}
+.cd-shell .dashboard-main,.cd-shell .dashboard-rail{gap:20px}
+.cd-shell .dashboard-card{background:#fff;border:1px solid #e9eaf3;border-radius:18px;padding:24px;box-shadow:0 7px 22px rgba(27,31,70,.035)}
+.cd-shell .card-heading{margin-bottom:20px}
+.cd-shell .card-heading h2{font-size:17px;font-weight:780}
+.cd-shell .card-heading svg{color:#6554d8;width:19px;height:19px}
+.cd-shell .card-heading a{font-size:12px;color:#5347db}
+.cd-shell .performance-card{min-height:345px}
+.cd-shell .performance-hero{height:220px;background:linear-gradient(180deg,#faf9ff,#fff);border-radius:12px;border-bottom:0;padding:20px;gap:18px}
+.cd-shell .performance-hero strong{font-size:39px}
+.cd-shell .performance-hero span{font-size:12px}
+.cd-shell .performance-hero small{font-size:11px;color:#74758f}
+.cd-shell .spark-bars{border:0;border-radius:10px;background:repeating-linear-gradient(to top,transparent 0,transparent 35px,#eeedf6 36px);gap:10px}
+.cd-shell .spark-bars i{background:linear-gradient(180deg,#a79aff,#6050d6);border-radius:6px 6px 0 0}
+.cd-shell .dashboard-actions a{border-radius:12px}
+.cd-shell .dashboard-actions a:hover{background:#f7f5ff}
+.cd-shell .dashboard-rail .ai-card{background:#f4f0ff;border-color:#e5ddff}
+@media(max-width:1100px){.cd-shell .dashboard-layout{grid-template-columns:1fr}}
+@media(max-width:900px){.cd-shell .dashboard-welcome{padding:26px 22px}.cd-shell .dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.cd-shell .sidebar{display:none}}
+@media(max-width:560px){.cd-shell .dashboard-welcome{flex-direction:column;align-items:flex-start}.cd-shell .dashboard-metrics article{padding:17px;min-height:135px}.cd-shell .dashboard-layout{display:block}.cd-shell .dashboard-main{margin-bottom:18px}.cd-shell .performance-hero{grid-template-columns:1fr;height:auto}.cd-shell .spark-bars{height:130px}}
