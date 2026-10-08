@@ -39,7 +39,7 @@ async function render(job){
   let audio=null;
   if(p.sound==='upload'){
    if(typeof p.audioKey!=='string'||!p.audioKey.startsWith(job.workspace_id+'/'+job.created_by+'/')||p.audioKey.includes('..'))throw Error('Untrusted audio path.');
-   audio=join(work,'sound');
+   audio=join(work,'sound.bin');
    await writeFile(audio,await download(audioBucket,p.audioKey,maxAudio));
   }
   const captionFile=join(work,'caption.txt');
@@ -47,9 +47,9 @@ async function render(job){
   // Source is decoded as an image and re-encoded to standard H.264 + AAC in MP4.
   const effectsMap={
    none:'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280',
-   zoom:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=min(zoom+0.00022\\,1.12):d=480:s=720x1280:fps=24',
-   pan:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=1.06:x=(iw-iw/zoom)*on/480:y=(ih-ih/zoom)/2:d=480:s=720x1280:fps=24',
-   pulse:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=1.04+0.02*sin(on/28):d=480:s=720x1280:fps=24'
+   zoom:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=min(zoom+0.00022\\,1.12):d=1:s=720x1280:fps=24',
+   pan:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=1.06:x=(iw-iw/zoom)*on/480:y=(ih-ih/zoom)/2:d=1:s=720x1280:fps=24',
+   pulse:'scale=820:1458:force_original_aspect_ratio=increase,crop=820:1458,zoompan=z=1.04+0.02*sin(on/28):d=1:s=720x1280:fps=24'
   };
   const vf=effectsMap[p.effect]+(p.caption.trim()?','+captionFilter(p.caption,captionFile):'')+',format=yuv420p';
   const args=['-loop','1','-framerate','24','-i',img];
