@@ -155,3 +155,29 @@ body{background:var(--app-bg);color:var(--copy)}.shell{grid-template-columns:218
 @media(max-width:1100px){.cd-shell .dashboard-layout{grid-template-columns:1fr}}
 @media(max-width:900px){.cd-shell .dashboard-welcome{padding:26px 22px}.cd-shell .dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.cd-shell .sidebar{display:none}}
 @media(max-width:560px){.cd-shell .dashboard-welcome{flex-direction:column;align-items:flex-start}.cd-shell .dashboard-metrics article{padding:17px;min-height:135px}.cd-shell .dashboard-layout{display:block}.cd-shell .dashboard-main{margin-bottom:18px}.cd-shell .performance-hero{grid-template-columns:1fr;height:auto}.cd-shell .spark-bars{height:130px}}
+
+
+/* The six-card ChannelDesk navigation concept, faithfully translated into the product */
+.cd-shell:has(.cd-hub){display:block;background:#050505!important;min-height:100vh}
+.cd-shell:has(.cd-hub)>.sidebar,.cd-shell:has(.cd-hub) .topbar,.cd-shell:has(.cd-hub) .mobile-topbar{display:none!important}
+.cd-shell:has(.cd-hub) .content{width:100%;max-width:1120px!important;padding:clamp(18px,5vw,64px)!important;margin:auto}
+.cd-hub{background:#050505;color:#fafafa;min-height:calc(100vh - 110px)}
+.cd-hub-panel{border:1px solid #292929;border-radius:36px;background:#050505;padding:clamp(20px,4vw,42px)}
+.cd-hub-heading{display:flex;flex-direction:row!important;align-items:center;justify-content:space-between;gap:16px;margin:0 0 30px}
+.cd-hub-brand{display:flex;align-items:center;gap:20px}
+.cd-hub-logo{display:grid;place-items:center;width:76px;height:76px;border-radius:23px;background:#262626;color:#fff}
+.cd-hub-logo svg{width:37px;height:37px}
+.cd-hub-heading h1{color:#fff;font-size:clamp(25px,3vw,38px);letter-spacing:-.045em;font-weight:800;margin:0}
+.cd-hub-heading p{color:#9c9c9c;font-size:13px;margin:4px 0 0}
+.cd-hub-label{border-radius:999px;padding:10px 17px;background:#242424;color:#d7d7d7;font-size:13px;font-weight:600;white-space:nowrap}
+.cd-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.cd-hub-tile{position:relative;display:grid;grid-template-columns:38px minmax(0,1fr);align-content:start;gap:18px;background:#242424;text-decoration:none;color:#fff;border:1px solid transparent;border-radius:26px;padding:32px 26px;min-height:176px;transition:background .18s,border-color .18s,transform .18s}
+.cd-hub-tile:hover{background:#303030;border-color:#666;transform:translateY(-2px)}
+.cd-hub-tile:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.cd-hub-icon{height:31px;width:31px;color:#bcbcbc;margin-top:4px}
+.cd-hub-copy{display:grid;align-content:start;gap:10px}
+.cd-hub-copy strong{font-size:clamp(19px,2vw,28px);font-weight:650;letter-spacing:-.03em;line-height:1.2}
+.cd-hub-copy>span{color:#a6a6a6;font-size:clamp(14px,1.6vw,20px);line-height:1.45;max-width:260px}
+.cd-hub-arrow{position:absolute;right:20px;top:20px;width:17px;height:17px;color:#b5b5b5;opacity:0;transition:opacity .15s}
+.cd-hub-tile:hover .cd-hub-arrow,.cd-hub-tile:focus-visible .cd-hub-arrow{opacity:1}
+@media(max-width:650px){.cd-shell:has(.cd-hub) .content{padding:15px!important}.cd-hub-panel{border-radius:25px;padding:17px}.cd-hub-heading{margin-bottom:22px}.cd-hub-brand{gap:12px}.cd-hub-logo{width:51px;height:51px;border-radius:16px}.cd-hub-logo svg{width:27px;height:27px}.cd-hub-heading p{font-size:10px}.cd-hub-label{font-size:10px;padding:7px 10px}.cd-hub-grid{gap:12px}.cd-hub-tile{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:20px 12px;min-height:145px;border-radius:18px}.cd-hub-icon{height:22px;width:22px}.cd-hub-copy{gap:7px}.cd-hub-copy strong{font-size:15px}.cd-hub-copy>span{font-size:12px}.cd-hub-arrow{display:none}}
