@@ -451,3 +451,13 @@ body,button,input,select,textarea{font-family:Arial,"Helvetica Neue",Helvetica,s
 .cd-tiktok-permissions p{overflow-wrap:anywhere;line-height:1.6}
 @media(max-width:850px){.cd-tiktok-profile{flex-wrap:wrap}.cd-tiktok-profile-actions{width:100%;justify-content:flex-start}.cd-tiktok-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.cd-tiktok-heading{align-items:flex-start;flex-direction:column;gap:10px}.cd-tiktok-account{gap:18px;padding:15px}.cd-tiktok-avatar{width:52px;height:52px;border-radius:15px;font-size:20px}.cd-tiktok-name h3{font-size:17px!important}.cd-tiktok-stat{padding:13px;gap:7px}.cd-tiktok-stat strong{font-size:23px}.cd-tiktok-video{align-items:flex-start;flex-wrap:wrap;gap:11px}.cd-tiktok-video-art{width:49px;height:60px;flex-basis:49px}.cd-tiktok-video-detail{flex-basis:calc(100% - 65px)}.cd-tiktok-open{margin-left:auto}.cd-tiktok-profile-actions>*{flex:1}.cd-tiktok-profile-actions form button{width:100%}}
+
+
+/* Explicit media selection: keep accessible radio semantics with card appearance */
+.cd-simple-content .media-choice{cursor:pointer;position:relative;grid-template-columns:20px 70px minmax(0,1fr) auto;min-height:76px}
+.cd-simple-content .media-choice input[type=radio]{appearance:auto!important;accent-color:#fff;width:17px!important;height:17px!important;margin:0!important;flex:0 0 17px;border:0!important;background:transparent!important;cursor:pointer}
+.cd-simple-content .media-choice.selected{border-color:#e8e8e8!important;box-shadow:inset 0 0 0 1px #e8e8e8}
+.cd-simple-content .media-choice:focus-within{outline:2px solid #fff;outline-offset:3px}
+.cd-simple-content .media-choice-copy{min-width:0;overflow:hidden}
+.cd-simple-content .media-choice-copy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:480px){.cd-simple-content .media-choice{grid-template-columns:18px 54px minmax(0,1fr);gap:8px;padding:9px}.cd-simple-content .media-choice-preview{width:54px}.cd-simple-content .media-choice-check{grid-column:3;font-size:11px}}
