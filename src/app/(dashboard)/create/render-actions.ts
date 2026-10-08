@@ -14,7 +14,7 @@ export async function queueVideoRender(raw:z.input<typeof input>){
  if(p.sound==='upload'){
   if(!p.audioKey||!p.audioKey.startsWith(p.workspaceId+'/'+user.id+'/')||p.audioKey.includes('..'))throw new Error('Invalid audio upload location.');
   const {data:entry,error:audioError}=await s.storage.from('channeldesk-audio').info(p.audioKey);
-  if(audioError||!entry||!['audio/mpeg','audio/mp4','audio/wav','audio/x-wav','audio/ogg','audio/webm'].includes(entry.metadata?.mimetype||'')||entry.metadata?.size>31457280)throw new Error('Audio must be a supported file under 30 MB.');
+  if(audioError||!entry||!['audio/mpeg','audio/mp4','audio/wav','audio/x-wav','audio/ogg','audio/webm'].includes(entry.metadata?.mimetype||'')||(!Number.isFinite(Number(entry.metadata?.size))||Number(entry.metadata?.size)>31457280))throw new Error('Audio must be a supported file under 30 MB.');
  }
  const key='render:'+randomUUID();
  const {data:jobId,error:jobError}=await s.rpc('enqueue_platform_job',{p_workspace_id:p.workspaceId,p_created_by:user.id,p_kind:'media.video_render',p_provider:'ffmpeg',p_idempotency_key:key,p_payload:{imageId:p.imageId,effect:p.effect,caption:p.caption,sound:p.sound,...(p.sound==='upload'?{audioKey:p.audioKey}:{})}});
