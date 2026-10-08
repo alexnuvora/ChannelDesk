@@ -36,13 +36,13 @@ test('TikTok display cache is workspace isolated and readable only by members',(
 
 test('Connections UI visibly demonstrates profile stats video list and authorized scopes',()=>{
  const page=readFileSync('src/app/(dashboard)/connections/page.tsx','utf8');
- assert.match(page,/TikTok profile & videos/);
+ assert.match(page,/TikTok profiles & videos/);
  assert.match(page,/Followers/);
  assert.match(page,/Following/);
- assert.match(page,/Likes/);
- assert.match(page,/Recent public TikTok videos/);
- assert.match(page,/AUTHORIZED SCOPES/);
- assert.match(page,/Refresh TikTok data/);
+ assert.match(page,/Total likes/);
+ assert.match(page,/Recent public videos/);
+ assert.match(page,/Connected permissions/);
+ assert.match(page,/Refresh data/);
 });
 
 test('MCP exposes TikTok Display API refresh tools',()=>{
