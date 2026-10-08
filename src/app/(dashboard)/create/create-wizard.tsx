@@ -5,7 +5,7 @@ import {SocialIcon} from '@/components/social-icon';
 import {publishWizard,type WizardOutcome} from './wizard-actions';
 
 type Account={id:string;network:string;display_name:string;workspace_id:string;scopes?:string[]};
-type Asset={id:string;mime_type:string;source_url:string|null;storage_key:string;duration_ms:number|null};
+type Asset={id:string;workspace_id:string;mime_type:string;source_url:string|null;storage_key:string;duration_ms:number|null};
 const networks=['facebook','instagram','tiktok','youtube'];
 const steps=['Accounts','Media','Caption & settings','Review & publish'];
 export function CreateWizard({accounts,assets,initialDate,initialMediaId}:{accounts:Account[];assets:Asset[];initialDate?:string;initialMediaId?:string}){
@@ -17,7 +17,7 @@ export function CreateWizard({accounts,assets,initialDate,initialMediaId}:{accou
  const invalidSchedule=schedule&&(!date||chosen.some(a=>a.network==='instagram'));
  const canProceed=step===0?chosen.length>0:step===1?(!needMedia||!!media)&&!incompatible:step===2?!!caption.trim()&&(!chosen.some(a=>a.network==='youtube')||!!title.trim())&&!invalidSchedule:true;
  const workspace=chosen[0]?.workspace_id||accounts[0]?.workspace_id;
- const visibleAssets=assets.filter(a=>!workspace||accounts.some(c=>c.workspace_id===workspace&&selected.includes(c.id))&&true);
+ const visibleAssets=assets.filter(a=>a.workspace_id===workspace);
  const grouped=useMemo(()=>networks.map(network=>({network,items:accounts.filter(a=>a.network===network)})).filter(g=>g.items.length),[accounts]);
  const toggle=(id:string)=>{const candidate=accounts.find(a=>a.id===id);if(!candidate)return;setSelected(old=>old.includes(id)?old.filter(x=>x!==id):old.some(x=>accounts.find(a=>a.id===x)?.workspace_id!==candidate.workspace_id)?[id]:[...old,id]);setResult(null);};
  const go=(next:number)=>{setError('');setStep(next);};
