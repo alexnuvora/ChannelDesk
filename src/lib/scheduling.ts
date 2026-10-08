@@ -5,13 +5,16 @@ import {validateMediaUrl} from './media-fetch';
 
 export const youtubeSchedulePayload=z.object({title:z.string().trim().min(1).max(100),description:z.string().max(5000).default(''),privacy:z.enum(['private','unlisted','public']),madeForKids:z.boolean(),tags:z.array(z.string().max(100)).max(30).default([])}).strict();
 export const tiktokSchedulePayload=z.object({caption:z.string().max(2200),privacy:z.enum(['PUBLIC_TO_EVERYONE','MUTUAL_FOLLOW_FRIENDS','FOLLOWER_OF_CREATOR','SELF_ONLY']),disableComment:z.boolean(),disableDuet:z.boolean(),disableStitch:z.boolean()}).strict();
-export const scheduleInput=z.object({connectionId:z.string().uuid(),mediaAssetId:z.string().uuid().optional(),mediaUrl:z.string().url().optional(),scheduledFor:z.string().datetime({offset:true}),requestId:z.string().min(8).max(128),payload:z.unknown()}).strict().refine(x=>!!x.mediaAssetId!==!!x.mediaUrl,'Choose one media asset or media URL.');
+export const facebookSchedulePayload=z.object({message:z.string().trim().min(1).max(5000),mediaUrl:z.string().url().optional()}).strict();
+export const scheduleInput=z.object({connectionId:z.string().uuid(),mediaAssetId:z.string().uuid().optional(),mediaUrl:z.string().url().optional(),scheduledFor:z.string().datetime({offset:true}),requestId:z.string().min(8).max(128),payload:z.unknown()}).strict();
 export async function schedulePublication(raw:z.input<typeof scheduleInput>,workspaceId:string,actorId:string){
  const input=scheduleInput.parse(raw);await assertWorkspaceAccess(actorId,workspaceId,true);const db=admin();
  const {data:c,error}=await db.from('social_connections').select('id,network').eq('id',input.connectionId).eq('workspace_id',workspaceId).eq('active',true).maybeSingle();
  if(error||!c)throw new Error('Choose an active channel in this workspace.');
- if(!['youtube','tiktok'].includes(c.network))throw new Error('Scheduling is not implemented for this network.');
- const payload=c.network==='youtube'?youtubeSchedulePayload.parse(input.payload):tiktokSchedulePayload.parse(input.payload);
+ if(!['youtube','tiktok','facebook'].includes(c.network))throw new Error('Scheduling is not implemented for this network.');
+ const payload=c.network==='youtube'?youtubeSchedulePayload.parse(input.payload):c.network==='tiktok'?tiktokSchedulePayload.parse(input.payload):facebookSchedulePayload.parse(input.payload);
+ if(c.network!=='facebook'&&!!input.mediaAssetId===!!input.mediaUrl)throw new Error('Choose exactly one media asset or URL.');
+ if(c.network==='facebook'&&(input.mediaAssetId||input.mediaUrl))throw new Error('Put an optional public HTTPS image URL in the Facebook post settings.');
  if('tags' in payload&&payload.tags.join(',').length>500)throw new Error('YouTube tags must total 500 characters or fewer.');
  const scheduledFor=new Date(input.scheduledFor).toISOString();if(Date.parse(scheduledFor)<=Date.now()+60000)throw new Error('Choose a schedule at least one minute in the future.');
  let mediaAssetId=input.mediaAssetId||null,mediaUrl=input.mediaUrl?validateMediaUrl(input.mediaUrl).href:null;
