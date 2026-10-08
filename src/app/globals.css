@@ -183,3 +183,118 @@ body{background:var(--app-bg);color:var(--copy)}.shell{grid-template-columns:218
 @media(max-width:650px){.cd-shell:has(.cd-hub) .content{padding:15px!important}.cd-hub-panel{border-radius:25px;padding:17px}.cd-hub-heading{margin-bottom:22px}.cd-hub-brand{gap:12px}.cd-hub-logo{width:51px;height:51px;border-radius:16px}.cd-hub-logo svg{width:27px;height:27px}.cd-hub-heading p{font-size:10px}.cd-hub-label{font-size:10px;padding:7px 10px}.cd-hub-grid{gap:12px}.cd-hub-tile{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:20px 12px;min-height:145px;border-radius:18px}.cd-hub-icon{height:22px;width:22px}.cd-hub-copy{gap:7px}.cd-hub-copy strong{font-size:15px}.cd-hub-copy>span{font-size:12px}.cd-hub-arrow{display:none}}
 
 .cd-back{display:inline-flex;gap:7px;align-items:center;text-decoration:none;color:#59566f;margin-bottom:25px;font-weight:650}.cd-back svg{width:17px}.cd-overview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.cd-overview-grid>a{display:flex;flex-direction:column;gap:10px;min-height:155px;padding:22px;border-radius:18px;border:1px solid #e7e5ee;background:#fff;text-decoration:none}.cd-overview-grid svg{width:24px;color:#6358c5}.cd-overview-grid span{color:#6e6e82;font-size:13px}.cd-overview-grid strong{font-size:32px}.cd-overview-next{background:#fff;border:1px solid #e7e5ee;border-radius:18px;padding:26px;margin-top:25px}.cd-overview-next>div{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.cd-overview-next p{color:#6e6e82}@media(max-width:850px){.cd-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.cd-overview-grid>a{min-height:125px;padding:15px}}
+
+
+/* ChannelDesk monochrome product-wide design system — approved six-tile reference */
+.cd-shell:not(:has(.cd-hub)){
+ --bg:#080808;--surface:#242424;--surface-2:#2d2d2d;--surface-3:#343434;
+ --text:#f7f7f7;--text-2:#b6b6b6;--text-3:#999;
+ --border:#393939;--border-strong:#555;
+ --black:#111;--black-hover:#303030;--pink:#f0f0f0;--pink-hover:#d5d5d5;
+ --line:#393939;--copy:#f7f7f7;--copy-2:#aaa;--shadow-soft:none;
+ background:#080808!important;color:#f7f7f7;min-height:100vh
+}
+.cd-shell:not(:has(.cd-hub)) .workspace{background:#080808!important;color:#f7f7f7}
+.cd-shell:not(:has(.cd-hub)) .content{max-width:1500px;padding:34px clamp(16px,3vw,48px) 75px}
+.cd-shell:not(:has(.cd-hub)) .sidebar{background:#111!important;border-color:#292929!important}
+.cd-shell:not(:has(.cd-hub)) .sidebar nav a{color:#cacaca}
+.cd-shell:not(:has(.cd-hub)) .sidebar nav a.active{background:#292929!important;color:white!important}
+.cd-shell:not(:has(.cd-hub)) .sidebar .nav-children a.active{background:#292929!important}
+.cd-shell:not(:has(.cd-hub)) .sidebar .ai{background:#242424;border-color:#393939;color:white}
+.cd-shell:not(:has(.cd-hub)) .brand-mark{background:#242424!important;box-shadow:none!important}
+.cd-shell:not(:has(.cd-hub)) .cd-topbar{background:#111!important;border-color:#303030;color:white}
+.cd-shell:not(:has(.cd-hub)) .cd-topbar-title{color:white}
+.cd-shell:not(:has(.cd-hub)) .cd-topbar-title span{color:#aaa}
+.cd-shell:not(:has(.cd-hub)) .cd-topbar-link{color:#ddd}
+.cd-shell:not(:has(.cd-hub)) h1,.cd-shell:not(:has(.cd-hub)) h2,.cd-shell:not(:has(.cd-hub)) h3{color:#fff}
+.cd-shell:not(:has(.cd-hub)) h1{font-size:clamp(25px,3vw,36px);font-weight:750;letter-spacing:-.035em}
+.cd-shell:not(:has(.cd-hub)) .eyebrow{color:#acacac}
+.cd-shell:not(:has(.cd-hub)) .muted,.cd-shell:not(:has(.cd-hub)) .page-title p{color:#aaa}
+.cd-shell:not(:has(.cd-hub)) .panel,
+.cd-shell:not(:has(.cd-hub)) .dashboard-card,
+.cd-shell:not(:has(.cd-hub)) .connection,
+.cd-shell:not(:has(.cd-hub)) .create-panel,
+.cd-shell:not(:has(.cd-hub)) .media-card,
+.cd-shell:not(:has(.cd-hub)) .metric-card,
+.cd-shell:not(:has(.cd-hub)) .stats article,
+.cd-shell:not(:has(.cd-hub)) .quick-actions>a,
+.cd-shell:not(:has(.cd-hub)) .cd-overview-grid>a,
+.cd-shell:not(:has(.cd-hub)) .cd-overview-next{
+ background:#242424!important;color:#f7f7f7!important;border:1px solid #343434!important;
+ border-radius:22px!important;box-shadow:none!important
+}
+.cd-shell:not(:has(.cd-hub)) .stats article{min-height:120px;padding:20px}
+.cd-shell:not(:has(.cd-hub)) .stats span,.cd-shell:not(:has(.cd-hub)) .stats small,
+.cd-shell:not(:has(.cd-hub)) .metric-card small{color:#b4b4b4}
+.cd-shell:not(:has(.cd-hub)) .stats strong,.cd-shell:not(:has(.cd-hub)) .metric-card b,
+.cd-shell:not(:has(.cd-hub)) .metric-card strong{color:#fff}
+.cd-shell:not(:has(.cd-hub)) button,
+.cd-shell:not(:has(.cd-hub)) .button{background:#ededed!important;color:#161616!important;border:1px solid #ededed!important;border-radius:11px!important;box-shadow:none!important}
+.cd-shell:not(:has(.cd-hub)) button:hover,
+.cd-shell:not(:has(.cd-hub)) .button:hover{background:#d3d3d3!important;border-color:#d3d3d3!important}
+.cd-shell:not(:has(.cd-hub)) .secondary,
+.cd-shell:not(:has(.cd-hub)) .secondary-button,
+.cd-shell:not(:has(.cd-hub)) .sidebar-action,
+.cd-shell:not(:has(.cd-hub)) .icon-button,
+.cd-shell:not(:has(.cd-hub)) .sidebar-toggle,
+.cd-shell:not(:has(.cd-hub)) .view-switch button,
+.cd-shell:not(:has(.cd-hub)) .planner-tabs button,
+.cd-shell:not(:has(.cd-hub)) .planner-arrows button,
+.cd-shell:not(:has(.cd-hub)) .planner-list-row,
+.cd-shell:not(:has(.cd-hub)) .calendar-post,
+.cd-shell:not(:has(.cd-hub)) .media-choice{
+ background:#303030!important;color:#f5f5f5!important;border:1px solid #494949!important
+}
+.cd-shell:not(:has(.cd-hub)) .planner-tabs button.active,
+.cd-shell:not(:has(.cd-hub)) .view-switch button.active{background:#ededed!important;color:#111!important}
+.cd-shell:not(:has(.cd-hub)) .sidebar-action{border:0!important}
+.cd-shell:not(:has(.cd-hub)) input,
+.cd-shell:not(:has(.cd-hub)) select,
+.cd-shell:not(:has(.cd-hub)) textarea,
+.cd-shell:not(:has(.cd-hub)) .composer,
+.cd-shell:not(:has(.cd-hub)) .planner-select,
+.cd-shell:not(:has(.cd-hub)) .planner-search,
+.cd-shell:not(:has(.cd-hub)) .reply-box textarea{
+ background:#181818!important;color:#fafafa!important;border:1px solid #505050!important;border-radius:10px!important
+}
+.cd-shell:not(:has(.cd-hub)) input::placeholder,.cd-shell:not(:has(.cd-hub)) textarea::placeholder{color:#888}
+.cd-shell:not(:has(.cd-hub)) input:focus-visible,.cd-shell:not(:has(.cd-hub)) button:focus-visible,
+.cd-shell:not(:has(.cd-hub)) a:focus-visible,.cd-shell:not(:has(.cd-hub)) textarea:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.cd-shell:not(:has(.cd-hub)) .calendar-shell,
+.cd-shell:not(:has(.cd-hub)) .calendar-week,
+.cd-shell:not(:has(.cd-hub)) .calendar-day,
+.cd-shell:not(:has(.cd-hub)) .calendar-day-body,
+.cd-shell:not(:has(.cd-hub)) .calendar-day.outside,
+.cd-shell:not(:has(.cd-hub)) .planner-modal,
+.cd-shell:not(:has(.cd-hub)) .planner-list-row,
+.cd-shell:not(:has(.cd-hub)) .inbox-thread,
+.cd-shell:not(:has(.cd-hub)) .message,
+.cd-shell:not(:has(.cd-hub)) .record-row,
+.cd-shell:not(:has(.cd-hub)) .media-preview{
+ background:#242424!important;color:#f5f5f5;border-color:#414141!important
+}
+.cd-shell:not(:has(.cd-hub)) .calendar-day.today>header,
+.cd-shell:not(:has(.cd-hub)) .calendar-day.today>header strong{background:#393939;color:#fff}
+.cd-shell:not(:has(.cd-hub)) .calendar-post{background:#303030!important}
+.cd-shell:not(:has(.cd-hub)) .calendar-post:hover{background:#3b3b3b!important}
+.cd-shell:not(:has(.cd-hub)) .planner-modal-backdrop{background:#000b}
+.cd-shell:not(:has(.cd-hub)) .message.outbound{background:#383838!important}
+.cd-shell:not(:has(.cd-hub)) .empty,.cd-shell:not(:has(.cd-hub)) .empty-state{border:1px dashed #505050;color:#aaa;background:#1e1e1e;border-radius:20px}
+.cd-shell:not(:has(.cd-hub)) .empty b,.cd-shell:not(:has(.cd-hub)) .empty-state b{color:white}
+.cd-shell:not(:has(.cd-hub)) .status{background:#373737;color:#e9e9e9}
+.cd-shell:not(:has(.cd-hub)) .status-published{background:#173827;color:#a5ecc5}
+.cd-shell:not(:has(.cd-hub)) .status-failed,.cd-shell:not(:has(.cd-hub)) .status-needs_review{background:#4a2226;color:#ffb5b5}
+.cd-shell:not(:has(.cd-hub)) .notice{background:#25372b;color:#b5eac0}
+.cd-shell:not(:has(.cd-hub)) .notice.error{background:#492429;color:#ffc1c1}
+.cd-shell:not(:has(.cd-hub)) .record-row,.cd-shell:not(:has(.cd-hub)) .metric-row,.cd-shell:not(:has(.cd-hub)) .planner-item{border-color:#424242}
+.cd-shell:not(:has(.cd-hub)) .cd-overview-next p,.cd-shell:not(:has(.cd-hub)) .cd-overview-grid span{color:#bbb}
+.cd-shell:not(:has(.cd-hub)) .cd-back{color:#dedede}
+.cd-shell:not(:has(.cd-hub)) .cd-overview-grid svg{color:#dedede}
+.cd-shell:not(:has(.cd-hub)) a:not(.button):hover{color:#fff}
+.cd-shell:not(:has(.cd-hub)) .network-mark.youtube{background:#c00}
+.cd-shell:not(:has(.cd-hub)) .network-mark.tiktok{background:#111}
+@media(max-width:900px){
+ .cd-shell:not(:has(.cd-hub)) .mobile-topbar,.cd-shell:not(:has(.cd-hub)) .cd-mobile-menu{background:#161616!important;color:#fff;border-color:#3b3b3b}
+ .cd-shell:not(:has(.cd-hub)) .cd-mobile-menu a{color:#eee}
+ .cd-shell:not(:has(.cd-hub)) .cd-mobile-menu a.active{background:#333!important;color:white!important}
+}
