@@ -4,7 +4,7 @@ import {useFormStatus} from 'react-dom';
 import {submitMeta} from './actions';
 
 type Account={id:string;display_name:string;workspace_id:string;network:string;scopes:string[]};
-function Submit(){const {pending}=useFormStatus();return <button type="submit" className="publish-button" disabled={pending}>{pending?'Publishing…':'Publish now'}</button>;}
+function Submit({disabled}:{disabled:boolean}){const {pending}=useFormStatus();return <button type="submit" className="publish-button" disabled={pending||disabled}>{pending?'Publishing…':'Publish now'}</button>;}
 export function MetaForm({accounts,requestId,network}:{accounts:Account[];requestId:string;network:'facebook'|'instagram'}){
  const [connectionId,setConnectionId]=useState(accounts.length===1?accounts[0].id:'');
  const [text,setText]=useState('');
@@ -20,7 +20,7 @@ export function MetaForm({accounts,requestId,network}:{accounts:Account[];reques
   <label>{network==='facebook'?'Post text':'Caption'}<textarea name="text" value={text} onChange={e=>setText(e.target.value)} className="composer compact-composer" maxLength={network==='facebook'?5000:2200} placeholder="Write your post…"/></label>
   <label>{network==='facebook'?'Public image URL (optional)':'Public image or video URL (required)'}<input type="url" name="mediaUrl" value={mediaUrl} onChange={e=>setMediaUrl(e.target.value)} required={network==='instagram'} placeholder="https://example.com/image.jpg" pattern="https://.*"/></label>
   <p className="form-hint">{network==='facebook'?'Publish a text post or optionally attach a publicly accessible image.':'Instagram publishing requires a publicly accessible HTTPS media URL. This flow will be expanded to select files from Media Library.'} Posts are sent immediately; Meta scheduling is not yet enabled.</p>
-  <div className="publish-actions"><Submit/></div>
+  <div className="publish-actions"><Submit disabled={!permitted||!valid||(network==='instagram'&&!mediaUrl.trim())}/></div>
   {(!permitted||!valid||(network==='instagram'&&!mediaUrl.trim()))&&<p className="form-hint">{!connectionId?'Choose an account to continue.':!permitted?'Reconnect the account with publishing permission.':'Add the required post content before publishing.'}</p>}
  </form>;
 }
