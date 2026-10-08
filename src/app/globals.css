@@ -102,3 +102,5 @@ body{background:var(--app-bg);color:var(--copy)}.shell{grid-template-columns:218
  .cd-mobile-toggle{background:transparent;color:#24233f;padding:8px}
  .cd-mobile-toggle:hover{background:#f5f3ff;color:#5347db}
 }
+
+.cd-onboarding{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px;margin-bottom:20px;border:1px solid #e5e0ff;border-radius:16px;background:#f7f5ff}.cd-onboarding p{margin:5px 0;color:#626078}.cd-onboarding .button{background:#5347db;white-space:nowrap}.cd-onboarding svg{width:17px}@media(max-width:650px){.cd-onboarding{flex-direction:column;align-items:stretch}}
