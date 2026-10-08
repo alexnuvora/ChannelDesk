@@ -1,20 +1,19 @@
 import {randomUUID} from 'node:crypto';
 import Link from 'next/link';
-import {SocialIcon} from '@/components/social-icon';
 import {createClient} from '@/lib/supabase/server';
-import {getTikTokCreatorInfo} from '@/lib/publishing';
-import {YouTubeForm} from './youtube-form';
-import {TikTokForm} from './tiktok-form';
-import {MetaForm} from './meta-form';
-import {AiStudio} from './ai-studio';
+import {CreateWizard} from './create-wizard';
 export default async function Create({searchParams}:{searchParams:Promise<{error?:string;success?:string;date?:string;media?:string}>}){
- const params=await searchParams;if(params.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(params.date)||!Number.isFinite(Date.parse(params.date+'T12:00:00Z'))))params.date=undefined;const supabase=await createClient();
- const [{data:youtube,error:youtubeError},{data:tiktok,error:tiktokError},{data:meta,error:metaError},{data:assets,error:mediaError}]=await Promise.all([
-  supabase.from('social_connections').select('id,display_name,workspace_id').eq('network','youtube').eq('active',true),
-  supabase.from('social_connections').select('id,display_name,workspace_id').eq('network','tiktok').eq('active',true),
-  supabase.from('social_connections').select('id,display_name,workspace_id,network,scopes').in('network',['facebook','instagram']).eq('active',true),
-  supabase.from('media_assets').select('id,workspace_id,source_url,storage_key,mime_type,created_at').like('mime_type','video/%').order('created_at',{ascending:false}).limit(50)
+ const p=await searchParams;
+ const supabase=await createClient();
+ const [{data:accounts,error:accountsError},{data:assets,error:mediaError}]=await Promise.all([
+  supabase.from('social_connections').select('id,network,display_name,workspace_id,scopes').in('network',['facebook','instagram','tiktok','youtube']).eq('active',true).order('network'),
+  supabase.from('media_assets').select('id,mime_type,source_url,storage_key,duration_ms,workspace_id').order('created_at',{ascending:false}).limit(100)
  ]);
- const media=mediaError?[]:(assets||[]);const {data:{user}}=await supabase.auth.getUser();const tiktokCapabilities:Record<string,unknown>={};if(user){await Promise.all((tiktok||[]).map(async a=>{try{tiktokCapabilities[a.id]=await getTikTokCreatorInfo(a.id,a.workspace_id,user.id);}catch{tiktokCapabilities[a.id]=null;}}));}
- return <><div className="page-title"><div><p className="eyebrow">CREATE</p><h1>Create a post</h1><p className="muted">Choose a channel, pick media from your library, then publish now or schedule it from ChannelDesk.</p></div><Link className="button secondary-button" href="/media">Media library</Link></div>{params.error&&<p className="notice error" role="alert">{params.error}</p>}{params.success&&<p className="notice" role="status">{params.success}</p>}{mediaError&&<p className="notice error">Your Media Library could not be loaded. Refresh before publishing.</p>}<AiStudio/><div className="create-grid"><div className="panel create-panel"><div className="channel-heading"><span className="network-mark youtube"><SocialIcon network="youtube"/></span><div><h2>YouTube</h2><p className="muted">Video publishing and scheduling</p></div></div>{youtubeError?<p className="notice error">YouTube accounts could not be loaded.</p>:youtube?.length?<YouTubeForm accounts={youtube} assets={media} requestId={randomUUID()} initialDate={params.date} initialMediaId={params.media}/>:<div className="setup-prompt"><p>Connect YouTube to start publishing.</p><Link className="button" href="/connections">Connect YouTube</Link></div>}</div><div className="panel create-panel"><div className="channel-heading"><span className="network-mark tiktok"><SocialIcon network="tiktok"/></span><div><h2>TikTok</h2><p className="muted">Draft upload or Direct Post</p></div></div>{tiktokError?<p className="notice error">TikTok accounts could not be loaded.</p>:tiktok?.length?<TikTokForm accounts={tiktok} assets={media} requestId={randomUUID()} capabilities={tiktokCapabilities} initialDate={params.date} initialMediaId={params.media}/>:<div className="setup-prompt"><p>Connect TikTok to start publishing.</p><Link className="button" href="/connections">Connect TikTok</Link></div>}</div><div className="panel create-panel"><div className="channel-heading"><span className="network-mark facebook"><SocialIcon network="facebook"/></span><div><h2>Facebook</h2><p className="muted">Page posts — publish now</p></div></div>{metaError?<p className="notice error">Meta accounts could not be loaded.</p>:(meta||[]).some(a=>a.network==='facebook')?<MetaForm key="facebook" network="facebook" accounts={(meta||[]).filter(a=>a.network==='facebook')} requestId={randomUUID()}/>:<div className="setup-prompt"><p>Connect a Facebook Page to publish.</p><Link className="button" href="/connections">Connect Facebook</Link></div>}</div><div className="panel create-panel"><div className="channel-heading"><span className="network-mark instagram"><SocialIcon network="instagram"/></span><div><h2>Instagram</h2><p className="muted">Professional account — publish now</p></div></div>{metaError?<p className="notice error">Meta accounts could not be loaded.</p>:(meta||[]).some(a=>a.network==='instagram')?<MetaForm key="instagram" network="instagram" accounts={(meta||[]).filter(a=>a.network==='instagram')} requestId={randomUUID()}/>:<div className="setup-prompt"><p>Connect an Instagram Professional account to publish.</p><Link className="button" href="/connections">Connect Instagram</Link></div>}</div></div></>;
+ return <><div className="page-title"><div><p className="eyebrow">CREATE</p><h1>Create a post</h1><p className="muted">Choose accounts, add your creative, write a caption, and review everything before publishing.</p></div><Link className="button secondary-button" href="/media">Media library</Link></div>
+ {p.error&&<p className="notice error" role="alert">{p.error}</p>}
+ {p.success&&<p className="notice" role="status">{p.success}</p>}
+ {accountsError&&<p className="notice error">Unable to load connected accounts.</p>}
+ {mediaError&&<p className="notice error">Unable to load your media library.</p>}
+ {!accountsError&&!mediaError&&<CreateWizard accounts={accounts||[]} assets={assets||[]} initialMediaId={p.media} initialDate={p.date}/>}
+ </>;
 }
