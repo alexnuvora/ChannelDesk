@@ -1,4 +1,4 @@
-# ChannelDesk
+# ChannelDesk 
 
 Next.js, Supabase and MCP social publishing app. YouTube and TikTok use a shared Planner queue. Media storage, optional draft review, YouTube comments and YouTube Analytics are implemented. Other social adapters and several platform screens remain foundations rather than complete integrations.
 
