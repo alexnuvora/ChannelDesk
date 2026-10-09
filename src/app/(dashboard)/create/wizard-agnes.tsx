@@ -11,10 +11,11 @@ export function WizardAgnes({platform,workspaceId,onCaption,onTitle,onVideo}:{pl
  const delivered=useRef<string|null>(null);
  const plan=()=>{setError('');start(async()=>{try{const r=await planAiContent(brief,platform);if(!r.ok){setError(r.error);return;}setConcept(r.data);setPrompt(r.data.videoPrompt);setJob(null);}catch(e){setError(e instanceof Error?e.message:'Could not plan content.');}})};
  const generate=()=>{if(!concept)return;setError('');start(async()=>{try{const r=await generateAiVideo({...concept,videoPrompt:prompt},quality);if(!r.ok){setError(r.error);return;}setJob(r.data);delivered.current=null;}catch(e){setError(e instanceof Error?e.message:'Could not start generation.');}})};
- useEffect(()=>{if(!job||!['queued','generating'].includes(job.status))return;let running=true;const id=job.id;
-  const tick=async()=>{const r=await refreshAiVideo(id);if(!running)return;if(!r.ok){setError(r.error);return;}setJob(r.data);if(r.data.status==='failed')setError(r.data.error||'Agnes generation failed.');};
-  const timer=setInterval(()=>void tick(),5000);void tick();return()=>{running=false;clearInterval(timer);};
- },[job?.id,job?.status]);
+ const jobId=job?.id,jobStatus=job?.status;
+ useEffect(()=>{if(!jobId||!['queued','generating'].includes(jobStatus||''))return;let running=true;let timer:ReturnType<typeof setTimeout>|undefined;
+  const tick=async()=>{try{const r=await refreshAiVideo(jobId);if(!running)return;if(!r.ok){setError(r.error);}else{setJob(r.data);if(r.data.status==='failed')setError(r.data.error||'Agnes generation failed.');}}catch{if(running)setError('Could not refresh video progress. Retrying shortly.');}finally{if(running)timer=setTimeout(()=>void tick(),5000)}};
+  void tick();return()=>{running=false;if(timer)clearTimeout(timer)};
+ },[jobId,jobStatus]);
  async function selectGeneratedVideo(){
   if(!job?.mediaAssetId||delivered.current===job.mediaAssetId)return;
   setError('');

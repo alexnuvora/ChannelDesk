@@ -1,4 +1,5 @@
 'use client';
+import {localScheduleInstant} from '@/lib/planner-dates';
 import {useMemo,useState,useTransition} from 'react';
 import Link from 'next/link';
 import {SocialIcon} from '@/components/social-icon';
@@ -10,8 +11,8 @@ type Account={id:string;network:string;display_name:string;workspace_id:string;s
 type Asset={id:string;workspace_id:string;mime_type:string;source_url:string|null;storage_key:string;duration_ms:number|null};
 const networks=['facebook','instagram','tiktok','youtube'];
 const steps=['Accounts','Media','Caption & settings','Review & publish'];
-export function CreateWizard({accounts,assets,initialDate,initialMediaId}:{accounts:Account[];assets:Asset[];initialDate?:string;initialMediaId?:string}){
- const [generated,setGenerated]=useState<Asset[]>([]);const [step,setStep]=useState(0),[selected,setSelected]=useState<string[]>([]),[mediaId,setMediaId]=useState(initialMediaId||''),[caption,setCaption]=useState(''),[title,setTitle]=useState(''),[privacy,setPrivacy]=useState<'public'|'private'|'unlisted'>('public'),[tiktokPrivacy,setTiktokPrivacy]=useState<'PUBLIC_TO_EVERYONE'|'MUTUAL_FOLLOW_FRIENDS'|'SELF_ONLY'>('SELF_ONLY'),[madeForKids,setMadeForKids]=useState(false),[schedule,setSchedule]=useState(!!initialDate),[date,setDate]=useState(initialDate?initialDate+'T12:00':''),[result,setResult]=useState<WizardOutcome[]|null>(null),[error,setError]=useState(''),[pending,start]=useTransition();
+export function CreateWizard({accounts,assets,initialDate,initialMediaId,initialCaption}:{accounts:Account[];assets:Asset[];initialDate?:string;initialMediaId?:string;initialCaption?:string}){
+ const [generated,setGenerated]=useState<Asset[]>([]);const [step,setStep]=useState(0),[selected,setSelected]=useState<string[]>([]),[mediaId,setMediaId]=useState(initialMediaId||''),[caption,setCaption]=useState(initialCaption||''),[title,setTitle]=useState(''),[privacy,setPrivacy]=useState<'public'|'private'|'unlisted'>('public'),[tiktokPrivacy,setTiktokPrivacy]=useState<'PUBLIC_TO_EVERYONE'|'MUTUAL_FOLLOW_FRIENDS'|'SELF_ONLY'>('SELF_ONLY'),[madeForKids,setMadeForKids]=useState(false),[schedule,setSchedule]=useState(!!initialDate),[date,setDate]=useState(initialDate?initialDate+'T12:00':''),[result,setResult]=useState<WizardOutcome[]|null>(null),[error,setError]=useState(''),[pending,start]=useTransition();
  const allAssets=[...generated,...assets];const chosen=accounts.filter(a=>selected.includes(a.id)),media=allAssets.find(a=>a.id===mediaId);
  const needVideo=chosen.some(a=>['youtube','tiktok'].includes(a.network));
  const needMedia=chosen.some(a=>['youtube','tiktok','instagram'].includes(a.network));
@@ -23,7 +24,7 @@ export function CreateWizard({accounts,assets,initialDate,initialMediaId}:{accou
  const grouped=useMemo(()=>networks.map(network=>({network,items:accounts.filter(a=>a.network===network)})).filter(g=>g.items.length),[accounts]);
  const toggle=(id:string)=>{const candidate=accounts.find(a=>a.id===id);if(!candidate)return;setSelected(old=>old.includes(id)?old.filter(x=>x!==id):old.some(x=>accounts.find(a=>a.id===x)?.workspace_id!==candidate.workspace_id)?[id]:[...old,id]);setResult(null);};
  const go=(next:number)=>{setError('');setStep(next);};
- const submit=()=>start(async()=>{setError('');setResult(null);try{const results=await publishWizard({accountIds:selected,mediaId:mediaId||null,caption,title,privacy,madeForKids,tiktokPrivacy,scheduledFor:schedule?new Date(date).toISOString():null});setResult(results);}catch(e){setError(e instanceof Error?e.message:'Unable to publish.');}});
+ const submit=()=>start(async()=>{setError('');setResult(null);try{const results=await publishWizard({accountIds:selected,mediaId:mediaId||null,caption,title,privacy,madeForKids,tiktokPrivacy,scheduledFor:schedule?localScheduleInstant(date):null});setResult(results);}catch(e){setError(e instanceof Error?e.message:'Unable to publish.');}});
  return <div className="panel create-panel" style={{maxWidth:1000,margin:'0 auto'}}>
   <div className="wizard-steps" aria-label="Create post steps" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:24}}>{steps.map((label,i)=><button key={label} type="button" className={i===step?'button':'secondary-button'} disabled={pending||i>step} onClick={()=>go(i)} style={{fontSize:12}}>{i+1}. {label}</button>)}</div>
   {step===0&&<section><h2>Where should this post go?</h2><p className="muted">Select one or multiple accounts. Only accounts you tick will receive the post.</p>{grouped.map(group=><div key={group.network} style={{margin:'18px 0'}}><div className="channel-heading"><span className={'network-mark '+group.network}><SocialIcon network={group.network}/></span><b>{group.network[0].toUpperCase()+group.network.slice(1)}</b></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:10,marginTop:8}}>{group.items.map(account=><label key={account.id} className="panel" style={{padding:12,cursor:'pointer',display:'flex',gap:12,alignItems:'center'}}><input type="checkbox" checked={selected.includes(account.id)} onChange={()=>toggle(account.id)}/><span>{account.display_name}</span></label>)}</div></div>)}</section>}

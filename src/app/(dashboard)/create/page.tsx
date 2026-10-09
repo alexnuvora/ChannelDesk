@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import {createClient} from '@/lib/supabase/server';
 import {CreateWizard} from './create-wizard';
-export default async function Create({searchParams}:{searchParams:Promise<{error?:string;success?:string;date?:string;media?:string}>}){
+export default async function Create({searchParams}:{searchParams:Promise<{error?:string;success?:string;date?:string;media?:string;draft?:string}>}){
  const p=await searchParams;
  const supabase=await createClient();
+ let draftCaption="";if(p.draft){const {data:draft}=await supabase.from("publications").select("text,state").eq("id",p.draft).in("state",["draft","rejected"]).maybeSingle();draftCaption=draft?.text||"";}
  const [{data:accounts,error:accountsError},{data:assets,error:mediaError}]=await Promise.all([
   supabase.from('social_connections').select('id,network,display_name,workspace_id,scopes').in('network',['facebook','instagram','tiktok','youtube']).eq('active',true).order('network'),
   supabase.from('media_assets').select('id,mime_type,source_url,storage_key,duration_ms,workspace_id').order('created_at',{ascending:false}).limit(100)
@@ -13,6 +14,6 @@ export default async function Create({searchParams}:{searchParams:Promise<{error
  {p.success&&<p className="notice" role="status">{p.success}</p>}
  {accountsError&&<p className="notice error">Unable to load connected accounts.</p>}
  {mediaError&&<p className="notice error">Unable to load your media library.</p>}
- {!accountsError&&!mediaError&&<CreateWizard accounts={accounts||[]} assets={assets||[]} initialMediaId={p.media} initialDate={p.date}/>}
+ {!accountsError&&!mediaError&&<CreateWizard initialCaption={draftCaption} accounts={accounts||[]} assets={assets||[]} initialMediaId={p.media} initialDate={p.date}/>}
  </>;
 }

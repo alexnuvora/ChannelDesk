@@ -1,0 +1,3 @@
+import {createClient} from '@/lib/supabase/server';
+import {DraftImport} from './draft-import';
+export default async function ImportPage(){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)return null;const {data:member,error}=await s.from('workspace_members').select('workspace_id,role').eq('user_id',user.id).limit(1).maybeSingle();if(error||!member)return <p className="notice error">Your workspace could not be loaded.</p>;if(!['owner','admin','editor'].includes(member.role))return <section className="panel"><h1>Draft import</h1><p>Your workspace role can view content but cannot import drafts.</p></section>;return <DraftImport workspaceId={member.workspace_id}/>}

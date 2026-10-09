@@ -91,5 +91,42 @@ test('platform isolation and the shared Planner delivery lifecycle',async t=>{
   assert.equal((await db.query<{ok:boolean}>('select consume_scheduler_ticket($1) as ok',[hash])).rows[0].ok,true);assert.equal((await db.query<{ok:boolean}>('select consume_scheduler_ticket($1) as ok',[hash])).rows[0].ok,false);
   await db.query('select issue_scheduler_ticket($1)',[hash]);await db.query("update scheduler_tickets set expires_at=now()-interval '1 second'");assert.equal((await db.query<{ok:boolean}>('select consume_scheduler_ticket($1) as ok',[hash])).rows[0].ok,false);
  });
+ await t.test('SmartLink clicks respect disabled destinations and increment atomically',async()=>{
+  await db.exec('reset role');
+  const link=(await db.query<{id:string}>("insert into smart_links(workspace_id,slug,title) values($1,'click-test','Test') returning id",[WA])).rows[0].id;
+  const item=(await db.query<{id:string}>("insert into smart_link_items(smart_link_id,label,url,active) values($1,'Destination','https://example.com',false) returning id",[link])).rows[0].id;
+  await as('service_role');
+  const disabled=await db.query<{url:string|null}>("select record_smart_link_click('click-test',$1,null,null) as url",[item]);assert.equal(disabled.rows[0].url,null);
+  assert.equal((await db.query<{n:number}>('select count(*)::int as n from smart_link_clicks where item_id=$1',[item])).rows[0].n,0);
+  await db.query('update smart_link_items set active=true where id=$1',[item]);
+  await db.query("select record_smart_link_click('click-test',$1,null,null)",[item]);
+  assert.equal(Number((await db.query<{clicks:number}>('select clicks from smart_link_items where id=$1',[item])).rows[0].clicks),1);
+  await db.query('update smart_links set active=false where id=$1',[link]);
+  assert.equal((await db.query<{url:string|null}>("select record_smart_link_click('click-test',$1,null,null) as url",[item])).rows[0].url,null);
+  await as('anon');await assert.rejects(()=>db.query("select record_smart_link_click('click-test',$1,null,null)",[item]));
+ });
+ await t.test('SmartLink builder enforces workspace roles and commits complete audited pages',async()=>{
+  const items=JSON.stringify([{label:'Our site',url:'https://example.com'}]);
+  await as('authenticated',ANALYST);await assert.rejects(()=>db.query("select create_smart_link_page($1,'forbidden-page','Title','',$2::jsonb)",[WA,items]));
+  await as('authenticated',A);await assert.rejects(()=>db.query("select create_smart_link_page($1,'wrong-workspace','Title','',$2::jsonb)",[WB,items]));
+  await assert.rejects(()=>db.query("select create_smart_link_page($1,'bad-url','Title','',$2::jsonb)",[WA,JSON.stringify([{label:'Bad',url:'javascript:alert(1)'}])]));
+  const link=(await db.query<{id:string}>("select create_smart_link_page($1,'new-page','Title','',$2::jsonb) as id",[WA,items])).rows[0].id;
+  assert.equal((await db.query<{n:number}>('select count(*)::int as n from smart_link_items where smart_link_id=$1',[link])).rows[0].n,1);
+  await db.query('select set_smart_link_visibility($1,false)',[link]);
+  assert.equal((await db.query<{active:boolean}>('select active from smart_links where id=$1',[link])).rows[0].active,false);
+  await as('authenticated',B);await assert.rejects(()=>db.query('select set_smart_link_visibility($1,true)',[link]));
+  await as('service_role');assert.equal((await db.query<{n:number}>("select count(*)::int as n from audit_events where entity_id=$1 and action like 'smart_link.%'",[link])).rows[0].n,2);
+ });
+ await t.test('bulk draft imports are atomic, authorized and safe to replay',async()=>{
+  const id='99111111-1111-4111-8111-111111111111';const batch=JSON.stringify([{id,caption:'First imported idea'}]);
+  await as('authenticated',ANALYST);await assert.rejects(()=>db.query('select import_caption_drafts($1,$2::jsonb)',[WA,batch]));
+  await as('authenticated',A);await assert.rejects(()=>db.query('select import_caption_drafts($1,$2::jsonb)',[WB,batch]));
+  await db.query('select import_caption_drafts($1,$2::jsonb)',[WA,batch]);await db.query('select import_caption_drafts($1,$2::jsonb)',[WA,batch]);
+  assert.equal((await db.query<{n:number}>('select count(*)::int as n from publications where id=$1',[id])).rows[0].n,1);
+  const extra='99222222-2222-4222-8222-222222222222';
+  await assert.rejects(()=>db.query('select import_caption_drafts($1,$2::jsonb)',[WA,JSON.stringify([{id,caption:'Changed caption'},{id:extra,caption:'Must roll back'}])]));
+  assert.equal((await db.query<{n:number}>('select count(*)::int as n from publications where id=$1',[extra])).rows[0].n,0);
+  await as('service_role');assert.equal((await db.query<{n:number}>("select count(*)::int as n from audit_events where action='publication.drafts_imported' and workspace_id=$1",[WA])).rows[0].n,1);
+ });
  await db.close();
 });

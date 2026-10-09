@@ -1,0 +1,1 @@
+export default function Loading(){return <div className="cd-page-loading" role="status" aria-live="polite"><div className="cd-loading-line"/><div className="cd-loading-grid">{[1,2,3,4].map(i=><div key={i}/>)}</div><p>Loading your workspace…</p></div>}
